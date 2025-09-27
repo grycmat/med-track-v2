@@ -232,18 +232,6 @@ class _BottomNavButtonState extends State<BottomNavButton>
                         ),
                     ],
                   ),
-                  const SizedBox(height: 4),
-                  AnimatedDefaultTextStyle(
-                    duration: const Duration(milliseconds: 200),
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: widget.isSelected
-                          ? FontWeight.w600
-                          : FontWeight.w500,
-                      color: _getTextColor(theme, isDark),
-                    ),
-                    child: Text(widget.item.label),
-                  ),
                 ],
               ),
             ),
