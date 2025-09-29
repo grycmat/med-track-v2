@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:med_track_v2/theme/app_colors.dart';
 import 'package:med_track_v2/viewmodels/add_medication_viewmodel.dart';
 import 'package:med_track_v2/widgets/add_medication/custom_text_field.widget.dart';
 import 'package:med_track_v2/widgets/gradient_button.widget.dart';
 import 'package:provider/provider.dart';
-import 'package:med_track_v2/theme/app_colors.dart';
 
 class MedicationDetailsView extends StatelessWidget {
   final PageController pageController;
@@ -13,7 +13,10 @@ class MedicationDetailsView extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final viewModel = Provider.of<AddMedicationViewModel>(context, listen: false);
+    final viewModel = Provider.of<AddMedicationViewModel>(
+      context,
+      listen: false,
+    );
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.darkBg : AppColors.lightBg,
@@ -49,7 +52,8 @@ class MedicationDetailsView extends StatelessWidget {
             Text(
               'Start by telling us the name and dosage.',
               style: theme.textTheme.titleMedium?.copyWith(
-                color: (isDark ? AppColors.darkText : AppColors.lightText).withOpacity(0.7),
+                color: (isDark ? AppColors.darkText : AppColors.lightText)
+                    .withOpacity(0.7),
               ),
               textAlign: TextAlign.center,
             ),
@@ -75,18 +79,22 @@ class MedicationDetailsView extends StatelessWidget {
         padding: const EdgeInsets.all(24.0),
         child: Consumer<AddMedicationViewModel>(
           builder: (context, vm, child) {
-            final bool isEnabled = (vm.medicationName?.isNotEmpty ?? false) && (vm.dosage?.isNotEmpty ?? false);
+            final bool isEnabled =
+                (vm.medicationName?.isNotEmpty ?? false) &&
+                (vm.dosage?.isNotEmpty ?? false);
+
             return GradientButton(
               text: 'Next: Frequency',
               trailingIcon: Icons.arrow_forward,
               onPressed: isEnabled
-                ? () {
-                    pageController.nextPage(
-                      duration: const Duration(milliseconds: 300),
-                      curve: Curves.easeInOut,
-                    );
-                  }
-                : null,
+                  ? () {
+                      pageController.animateToPage(
+                        1,
+                        duration: const Duration(milliseconds: 300),
+                        curve: Curves.easeInOut,
+                      );
+                    }
+                  : null,
             );
           },
         ),

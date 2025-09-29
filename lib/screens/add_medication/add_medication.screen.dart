@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:med_track_v2/viewmodels/add_medication_viewmodel.dart';
 import 'package:med_track_v2/screens/add_medication/medication_details.view.dart';
 import 'package:med_track_v2/screens/add_medication/medication_frequency.view.dart';
 import 'package:med_track_v2/screens/add_medication/medication_review.view.dart';
+import 'package:med_track_v2/viewmodels/add_medication_viewmodel.dart';
 import 'package:med_track_v2/widgets/custom_app_bar.widget.dart';
 import 'package:provider/provider.dart';
 
@@ -22,7 +22,8 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
       create: (_) => AddMedicationViewModel(),
       child: Scaffold(
         appBar: const CustomAppBar(
-          title: 'Add Medication',
+          greeting: 'Add Medication',
+          userName: 'User Name',
         ),
         body: PageView(
           controller: _pageController,
