@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:med_track_v2/models/fab_action.dart';
 import 'package:med_track_v2/theme/app_colors.dart';
-import 'package:med_track_v2/widgets/fab_action_button.widget.dart';
+import 'package:med_track_v2/widgets/fab/fab_action_button.widget.dart';
 
 class ExpandableFAB extends StatefulWidget {
   final List<FABAction> actions;
