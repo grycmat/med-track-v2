@@ -4,7 +4,7 @@ import 'package:med_track_v2/data/dummy_data.dart';
 import 'package:med_track_v2/models/medication.dart';
 import 'package:med_track_v2/theme/app_colors.dart';
 import 'package:med_track_v2/theme/app_theme.dart';
-import 'package:med_track_v2/widgets/add_medication.widget.dart';
+import 'package:med_track_v2/screens/add_medication/add_medication.screen.dart';
 import 'package:med_track_v2/widgets/custom_app_bar.widget.dart';
 import 'package:med_track_v2/widgets/custom_bottom_navigation.widget.dart';
 import 'package:med_track_v2/widgets/fab.widget.dart';
@@ -110,7 +110,9 @@ class _DashboardScreenState extends State<DashboardScreen>
 
   void _onAddMedication() {
     HapticFeedback.lightImpact();
-    showDialog(context: context, builder: (context) => AddMedicationDialog());
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (context) => const AddMedicationScreen()),
+    );
   }
 
   String _getGreeting() {
