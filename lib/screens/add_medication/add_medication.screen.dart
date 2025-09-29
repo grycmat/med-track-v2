@@ -26,7 +26,6 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
         ),
         body: PageView(
           controller: _pageController,
-          physics: const NeverScrollableScrollPhysics(),
           children: [
             MedicationDetailsView(pageController: _pageController),
             MedicationFrequencyView(pageController: _pageController),
