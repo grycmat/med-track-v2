@@ -4,6 +4,7 @@ import 'package:med_track_v2/screens/add_medication/medication_frequency.view.da
 import 'package:med_track_v2/screens/add_medication/medication_review.view.dart';
 import 'package:med_track_v2/viewmodels/add_medication_viewmodel.dart';
 import 'package:med_track_v2/widgets/custom_app_bar.widget.dart';
+import 'package:med_track_v2/widgets/step_progress_bar.widget.dart';
 import 'package:provider/provider.dart';
 
 class AddMedicationScreen extends StatefulWidget {
@@ -15,6 +16,33 @@ class AddMedicationScreen extends StatefulWidget {
 
 class _AddMedicationScreenState extends State<AddMedicationScreen> {
   final PageController _pageController = PageController();
+  int _currentStep = 1;
+  static const int _totalSteps = 3;
+
+  @override
+  void initState() {
+    super.initState();
+    _pageController.addListener(_onPageChanged);
+  }
+
+  void _onPageChanged() {
+    final page = _pageController.page;
+    if (page != null) {
+      final newStep = page.round() + 1;
+      if (newStep != _currentStep) {
+        setState(() {
+          _currentStep = newStep;
+        });
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _pageController.removeListener(_onPageChanged);
+    _pageController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -25,12 +53,26 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
           greeting: 'Add Medication',
           userName: 'User Name',
         ),
-        body: PageView(
-          controller: _pageController,
+        body: Column(
           children: [
-            MedicationDetailsView(pageController: _pageController),
-            MedicationFrequencyView(pageController: _pageController),
-            MedicationReviewView(pageController: _pageController),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+              child: StepProgressBar(
+                currentStep: _currentStep,
+                totalSteps: _totalSteps,
+              ),
+            ),
+            Expanded(
+              child: PageView(
+                physics: const NeverScrollableScrollPhysics(),
+                controller: _pageController,
+                children: [
+                  MedicationDetailsView(pageController: _pageController),
+                  MedicationFrequencyView(pageController: _pageController),
+                  MedicationReviewView(pageController: _pageController),
+                ],
+              ),
+            ),
           ],
         ),
       ),
