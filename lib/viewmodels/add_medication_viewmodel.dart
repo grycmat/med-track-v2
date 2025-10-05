@@ -2,13 +2,18 @@ import 'package:flutter/material.dart';
 
 class AddMedicationViewModel extends ChangeNotifier {
   String? _medicationName;
-  String? _dosage;
+  String? _dosageAmount;
+  String _dosageUnit = 'pill(s)';
   Frequency _frequency = Frequency.daily;
   final Set<Day> _selectedDays = {};
   final List<TimeOfDay> _times = [];
 
   String? get medicationName => _medicationName;
-  String? get dosage => _dosage;
+  String? get dosageAmount => _dosageAmount;
+  String get dosageUnit => _dosageUnit;
+  String? get dosage => _dosageAmount != null && _dosageAmount!.isNotEmpty
+      ? '$_dosageAmount $_dosageUnit'
+      : null;
   Frequency get frequency => _frequency;
   Set<Day> get selectedDays => _selectedDays;
   List<TimeOfDay> get times => _times;
@@ -18,8 +23,13 @@ class AddMedicationViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  void setDosage(String dosage) {
-    _dosage = dosage;
+  void setDosageAmount(String amount) {
+    _dosageAmount = amount;
+    notifyListeners();
+  }
+
+  void setDosageUnit(String unit) {
+    _dosageUnit = unit;
     notifyListeners();
   }
 

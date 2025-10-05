@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:med_track_v2/theme/app_colors.dart';
 import 'package:med_track_v2/viewmodels/add_medication_viewmodel.dart';
 import 'package:med_track_v2/widgets/add_medication/custom_text_field.widget.dart';
+import 'package:med_track_v2/widgets/add_medication/dosage_input.widget.dart';
 import 'package:med_track_v2/widgets/gradient_button.widget.dart';
 import 'package:provider/provider.dart';
 
@@ -65,11 +66,16 @@ class MedicationDetailsView extends StatelessWidget {
               onChanged: (value) => viewModel.setMedicationName(value),
             ),
             const SizedBox(height: 24),
-            CustomTextField(
-              label: 'Dosage (e.g., 200 mg)',
-              hintText: 'e.g. 1 pill',
-              icon: Icons.medical_services_outlined,
-              onChanged: (value) => viewModel.setDosage(value),
+            Consumer<AddMedicationViewModel>(
+              builder: (context, vm, child) {
+                return DosageInput(
+                  label: 'Dosage',
+                  amountHint: '1',
+                  initialUnit: vm.dosageUnit,
+                  onAmountChanged: (value) => vm.setDosageAmount(value),
+                  onUnitChanged: (value) => vm.setDosageUnit(value),
+                );
+              },
             ),
             const SizedBox(height: 64),
           ],
@@ -81,7 +87,7 @@ class MedicationDetailsView extends StatelessWidget {
           builder: (context, vm, child) {
             final bool isEnabled =
                 (vm.medicationName?.isNotEmpty ?? false) &&
-                (vm.dosage?.isNotEmpty ?? false);
+                (vm.dosageAmount?.isNotEmpty ?? false);
 
             return GradientButton(
               text: 'Next: Frequency',
