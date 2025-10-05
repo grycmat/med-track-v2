@@ -6,7 +6,10 @@ import 'package:provider/provider.dart';
 class TimeOfDayWidget extends StatelessWidget {
   const TimeOfDayWidget({super.key});
 
-  Future<void> _selectTime(BuildContext context, AddMedicationViewModel viewModel) async {
+  Future<void> _selectTime(
+    BuildContext context,
+    AddMedicationViewModel viewModel,
+  ) async {
     final TimeOfDay? picked = await showTimePicker(
       context: context,
       initialTime: TimeOfDay.now(),
@@ -36,8 +39,12 @@ class TimeOfDayWidget extends StatelessWidget {
           builder: (context, viewModel, child) {
             return Column(
               children: viewModel.times.map((time) {
-                final iconData = time.period == DayPeriod.am ? Icons.wb_sunny_outlined : Icons.nightlight_outlined;
-                final periodLabel = time.period == DayPeriod.am ? 'Morning' : 'Evening';
+                final iconData = time.period == DayPeriod.am
+                    ? Icons.wb_sunny_outlined
+                    : Icons.nightlight_outlined;
+                final periodLabel = time.period == DayPeriod.am
+                    ? 'Morning'
+                    : 'Evening';
 
                 return Dismissible(
                   key: Key(time.toString()),
@@ -57,13 +64,22 @@ class TimeOfDayWidget extends StatelessWidget {
                   child: Card(
                     elevation: 2,
                     margin: const EdgeInsets.only(bottom: 12),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
                     child: ListTile(
-                      leading: Icon(iconData, color: isDark ? AppColors.darkPrimary : AppColors.lightPrimary),
+                      leading: Icon(
+                        iconData,
+                        color: isDark
+                            ? AppColors.darkPrimary
+                            : AppColors.lightPrimary,
+                      ),
                       title: Text(periodLabel),
                       trailing: Text(
                         time.format(context),
-                        style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                   ),
@@ -74,16 +90,14 @@ class TimeOfDayWidget extends StatelessWidget {
         ),
         const SizedBox(height: 16),
         GestureDetector(
-          onTap: () => _selectTime(context, Provider.of<AddMedicationViewModel>(context, listen: false)),
+          onTap: () => _selectTime(
+            context,
+            Provider.of<AddMedicationViewModel>(context, listen: false),
+          ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.add_circle_outline, color: isDark ? AppColors.darkPrimary : AppColors.lightPrimary),
-              const SizedBox(width: 8),
-              Text(
-                'Add a time',
-                style: TextStyle(color: isDark ? AppColors.darkPrimary : AppColors.lightPrimary, fontWeight: FontWeight.bold),
-              ),
+              Text('Add a time', style: TextStyle(fontWeight: FontWeight.bold)),
             ],
           ),
         ),
