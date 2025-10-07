@@ -28,7 +28,13 @@ flutter analyze
 
 ## Architecture
 
-- **Screens**: Dashboard with medication overview
-- **Widgets**: Reusable UI components (cards, navigation, buttons)
-- **Theme**: Comprehensive light/dark mode theming
-- **Models**: Medication data structures and enums
+The project follows a clean architecture with a clear separation of concerns. The main components are:
+
+- **`lib/screens`**: Contains the application's screens, such as the `DashboardScreen` and the `AddMedicationScreen`.
+- **`lib/widgets`**: Contains reusable UI components that are used across multiple screens.
+- **`lib/models`**: Contains the data models for the application.
+- **`lib/viewmodels`**: Contains the view models for the application, which are used to manage the state of the views.
+- **`lib/theme`**: Contains the application's theme and color scheme.
+- **`lib/navigation`**: Contains the application's routing logic.
+
+For a more detailed overview of the project, please see the `GEMINI.md` file.
