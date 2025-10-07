@@ -97,7 +97,10 @@ class TimeOfDayWidget extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text('Add a time', style: TextStyle(fontWeight: FontWeight.bold)),
+              Text(
+                'Add a time',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+              ),
             ],
           ),
         ),

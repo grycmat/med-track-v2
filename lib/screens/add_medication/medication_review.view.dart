@@ -4,8 +4,6 @@ import 'package:med_track_v2/viewmodels/add_medication_viewmodel.dart';
 import 'package:med_track_v2/widgets/add_medication/review_item.widget.dart';
 import 'package:med_track_v2/widgets/gradient_button.widget.dart';
 import 'package:provider/provider.dart';
-import 'package:intl/intl.dart';
-
 
 class MedicationReviewView extends StatelessWidget {
   final PageController pageController;
@@ -25,7 +23,10 @@ class MedicationReviewView extends StatelessWidget {
     }
   }
 
-  String _formatSchedule(BuildContext context, AddMedicationViewModel viewModel) {
+  String _formatSchedule(
+    BuildContext context,
+    AddMedicationViewModel viewModel,
+  ) {
     if (viewModel.times.isEmpty) {
       return 'No time selected';
     }
@@ -65,7 +66,9 @@ class MedicationReviewView extends StatelessWidget {
                   'Review & Confirm',
                   style: theme.textTheme.headlineMedium?.copyWith(
                     fontWeight: FontWeight.bold,
-                    color: isDark ? AppColors.darkHeader : AppColors.lightHeader,
+                    color: isDark
+                        ? AppColors.darkHeader
+                        : AppColors.lightHeader,
                   ),
                   textAlign: TextAlign.center,
                 ),
@@ -73,7 +76,8 @@ class MedicationReviewView extends StatelessWidget {
                 Text(
                   'Almost done! Please review the details.',
                   style: theme.textTheme.titleMedium?.copyWith(
-                    color: (isDark ? AppColors.darkText : AppColors.lightText).withOpacity(0.7),
+                    color: (isDark ? AppColors.darkText : AppColors.lightText)
+                        .withOpacity(0.7),
                   ),
                   textAlign: TextAlign.center,
                 ),
@@ -103,7 +107,10 @@ class MedicationReviewView extends StatelessWidget {
                   maxLines: 3,
                   decoration: InputDecoration(
                     hintText: 'Add notes (e.g., take with food)',
-                    hintStyle: TextStyle(color: (isDark ? AppColors.darkText : AppColors.lightText).withOpacity(0.5)),
+                    hintStyle: TextStyle(
+                      color: (isDark ? AppColors.darkText : AppColors.lightText)
+                          .withOpacity(0.5),
+                    ),
                     filled: true,
                     fillColor: theme.cardColor,
                     border: OutlineInputBorder(
@@ -122,7 +129,6 @@ class MedicationReviewView extends StatelessWidget {
         child: GradientButton(
           text: 'Confirm',
           onPressed: () {
-            // TODO: Implement save logic
             Navigator.of(context).pop();
           },
         ),
