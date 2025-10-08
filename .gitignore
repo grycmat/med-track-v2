@@ -27,11 +27,21 @@ migrate_working_dir/
 **/doc/api/
 **/ios/Flutter/.last_build_id
 .dart_tool/
+.flutter-plugins
 .flutter-plugins-dependencies
+.metadata
 .pub-cache/
 .pub/
 /build/
 /coverage/
+
+# Code generation
+*.g.dart
+*.freezed.dart
+*.gr.dart
+
+# Testing
+test/.test_coverage.dart
 
 # Symbolication related
 app.*.symbols
@@ -43,3 +53,22 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Android related
+**/android/.gradle/
+**/android/captures/
+**/android/gradlew
+**/android/gradlew.bat
+**/android/local.properties
+**/android/key.properties
+
+# iOS related
+**/ios/Flutter/flutter_export_environment.sh
+**/ios/Pods/
+**/ios/.symlinks/
+**/ios/Runner.xcworkspace/
+
+# Environment variables and secrets
+.env
+*.env
+firebase_options.dart
