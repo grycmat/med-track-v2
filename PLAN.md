@@ -2,731 +2,837 @@
 
 ## Overview
 
-This plan outlines the implementation of local database persistence using the Drift library for the medication tracking app. The implementation maintains the existing clean architecture (Provider pattern, separation of concerns) while adding robust data persistence.
+This plan outlines the implementation of local database persistence using the Drift library for the medication tracking app. The implementation maintains the existing clean architecture (Provider pattern, separation of concerns) while adding robust data persistence optimized for solo development.
 
-**Estimated Timeline:** 10-16 hours (2-3 work days)
 
-## Key Architecture Decisions
+---
 
-### 1. Database Schema Design
+## Architecture Approach
 
-#### Primary Tables
+### Core Principles
 
-**medications table:**
+- **Direct database access** - All database operations in AppDatabase class (no DAO abstraction layer)
+- **Single unified service** - MedicationService handles all business logic including statistics
+- **Inline converters** - Type converters defined within table files
+- **Direct UI model mapping** - Service layer returns UI models directly
+- **Minimal file count** - 8 new files total
+
+### Data Flow
+
 ```
+UI (Screens/Widgets)
+    ↕
+ViewModels (ChangeNotifier)
+    ↕
+MedicationService (Business Logic)
+    ↕
+AppDatabase (Direct Drift Queries)
+```
+
+---
+
+## Database Schema Design
+
+### medications table
+```sql
 - id (INTEGER, PRIMARY KEY, AUTOINCREMENT)
 - name (TEXT, NOT NULL)
-- dosage_amount (TEXT, NOT NULL) - e.g., "500"
-- dosage_unit (TEXT, NOT NULL) - e.g., "mg", "ml", "tablets"
-- frequency (TEXT, NOT NULL) - serialized enum: "daily", "weekly", "specificDays"
-- selected_days (TEXT, NULLABLE) - JSON array: ["monday", "wednesday", "friday"]
+- dosage_amount (TEXT, NOT NULL)
+- dosage_unit (TEXT, NOT NULL)
+- frequency (TEXT, NOT NULL) - enum: "daily", "weekly", "specificDays"
+- selected_days (TEXT, NULLABLE) - JSON array of Day enum values
 - created_at (DATETIME, NOT NULL)
-- updated_at (DATETIME, NOT NULL)
-- is_active (BOOLEAN, NOT NULL, DEFAULT true) - for soft deletion
+- is_active (BOOLEAN, NOT NULL, DEFAULT true)
 ```
 
-**medication_times table:**
-```
+### medication_times table
+```sql
 - id (INTEGER, PRIMARY KEY, AUTOINCREMENT)
-- medication_id (INTEGER, NOT NULL, FOREIGN KEY)
+- medication_id (INTEGER, NOT NULL, FOREIGN KEY → medications.id)
 - hour (INTEGER, NOT NULL) - 0-23
 - minute (INTEGER, NOT NULL) - 0-59
-- created_at (DATETIME, NOT NULL)
 ```
 
-**medication_logs table:** (for tracking taken/missed status)
-```
+### medication_logs table
+```sql
 - id (INTEGER, PRIMARY KEY, AUTOINCREMENT)
-- medication_id (INTEGER, NOT NULL, FOREIGN KEY)
-- scheduled_date (DATE, NOT NULL) - date when medication should be taken
-- scheduled_time (TIME, NOT NULL) - time when medication should be taken
+- medication_id (INTEGER, NOT NULL, FOREIGN KEY → medications.id)
+- medication_time_id (INTEGER, NOT NULL, FOREIGN KEY → medication_times.id)
+- log_date (DATE, NOT NULL)
 - status (TEXT, NOT NULL) - "taken", "missed", "skipped"
-- taken_at (DATETIME, NULLABLE) - actual time when marked as taken
-- created_at (DATETIME, NOT NULL)
-- updated_at (DATETIME, NOT NULL)
+- taken_at (DATETIME, NULLABLE)
 ```
 
-#### Rationale for Schema Design:
-- **Separate times table**: Medications can have multiple reminder times (one-to-many relationship)
-- **JSON for selected_days**: Simple serialization for the Set<Day>, easy to query and deserialize
-- **medication_logs**: Separates static medication data from daily tracking, enables history and statistics
-- **Timestamps**: Track creation/updates for audit and sync purposes
-- **is_active**: Soft deletion allows keeping history without showing inactive medications
+### Schema Rationale
 
-### 2. Architecture & File Structure
+- **Separate times table**: One-to-many relationship for medications with multiple daily times
+- **medication_time_id in logs**: Direct reference to specific time slots (no hour/minute matching needed)
+- **JSON for selected_days**: Simple serialization for Set<Day>
+- **Soft deletion via is_active**: Preserve history while hiding inactive medications
+- **Minimal timestamps**: Only created_at for medications, only taken_at for logs
 
-#### New Files to Create (18 files):
+---
+
+## File Structure
+
+### New Files to Create
 
 **Database Layer** (`lib/database/`):
 ```
 lib/database/
-├── app_database.dart              # Main database definition with @DriftDatabase annotation
-├── tables/
-│   ├── medications_table.dart     # Medications table definition
-│   ├── medication_times_table.dart # Times table definition
-│   └── medication_logs_table.dart  # Logs table definition
-├── daos/
-│   ├── medications_dao.dart       # CRUD operations for medications + times
-│   └── medication_logs_dao.dart   # CRUD operations for logs
-└── converters/
-    ├── frequency_converter.dart   # TypeConverter for Frequency enum
-    └── day_list_converter.dart    # TypeConverter for List<Day> (from JSON)
+├── app_database.dart              # Main database with all CRUD operations
+└── tables/
+    ├── medications_table.dart     # Medications table with inline converters
+    ├── medication_times_table.dart
+    └── medication_logs_table.dart
 ```
 
 **Services Layer** (`lib/services/`):
 ```
 lib/services/
-├── medication_service.dart        # Business logic layer between viewmodels and database
-└── statistics_service.dart        # Calculates adherence %, streaks from logs
+└── medication_service.dart        # Unified service (medications + statistics)
 ```
 
-**Updated Models** (`lib/models/`):
-```
-lib/models/
-├── medication.dart                # Keep existing, add factory constructors for Drift entities
-├── medication_with_times.dart     # NEW: Composite model (medication + times)
-└── medication_log.dart            # NEW: Model for log entries
-```
-
-#### Files to Modify:
+### Files to Modify
 
 **ViewModels**:
-- `lib/viewmodels/add_medication_viewmodel.dart` - Add save method that calls service
-- NEW `lib/viewmodels/dashboard_viewmodel.dart` - Replace dummy data with service calls
+- `lib/viewmodels/add_medication_viewmodel.dart` - Add save method and loading state
+- NEW `lib/viewmodels/dashboard_viewmodel.dart` - Replace dummy data with real data
 
 **Screens**:
-- `lib/screens/dashboard.screen.dart` - Refactor to use DashboardViewModel with Provider
-- `lib/screens/add_medication/medication_review.view.dart` - Call viewmodel save method (line 132)
+- `lib/screens/dashboard.screen.dart` - Use DashboardViewModel
+- `lib/screens/add_medication/medication_review.view.dart` - Call save method
 
 **Main**:
-- `lib/main.dart` - Initialize database, provide services and database instance
+- `lib/main.dart` - Initialize database and services
 
-**Dependencies**:
-- `pubspec.yaml` - Add drift dependencies
+---
 
-### 3. Data Flow Architecture
+## Implementation Steps
 
-#### Adding a Medication (Complete Flow):
+### Phase 1: Database Schema (1.5 hours)
 
-```
-User clicks "Add Medication" in MedicationReviewView
-    ↓
-1. MedicationReviewView calls: viewModel.saveMedication(context)
-    ↓
-2. AddMedicationViewModel:
-   - Validates all fields
-   - Calls: medicationService.addMedication(...)
-   - Shows loading state
-    ↓
-3. MedicationService.addMedication():
-   - Creates MedicationsCompanion (Drift insert object)
-   - Calls: medicationsDao.insertMedicationWithTimes(...)
-   - Handles errors with try-catch
-   - Returns created Medication ID
-    ↓
-4. MedicationsDao.insertMedicationWithTimes():
-   - Starts database transaction
-   - Inserts into medications table (returns ID)
-   - Inserts multiple rows into medication_times table
-   - Commits transaction
-   - Returns medication ID
-    ↓
-5. AddMedicationViewModel:
-   - Receives success/failure
-   - If success: Navigator.pop() + optional SnackBar
-   - If failure: Shows error dialog
-    ↓
-6. Dashboard automatically updates (Provider/ChangeNotifier)
-```
+**Step 1.1**: Create `lib/database/tables/medications_table.dart`
 
-#### Loading Dashboard Data:
+```dart
+import 'package:drift/drift.dart';
+import 'package:med_track_v2/models/medication.dart';
+import 'dart:convert';
 
-```
-DashboardScreen builds
-    ↓
-1. Provider<DashboardViewModel> initialized (in main.dart)
-    ↓
-2. DashboardViewModel constructor:
-   - Calls: _loadMedications() in initState
-    ↓
-3. DashboardViewModel._loadMedications():
-   - Sets loading state
-   - Calls: medicationService.getAllActiveMedications()
-   - Calls: statisticsService.getStatistics()
-   - notifyListeners()
-    ↓
-4. MedicationService.getAllActiveMedications():
-   - Calls: medicationsDao.watchAllActiveMedicationsWithTimes()
-   - Returns Stream<List<MedicationWithTimes>>
-    ↓
-5. DashboardViewModel:
-   - Listens to stream
-   - Transforms Drift entities to UI models
-   - Calculates status (takeNow, upcoming, taken, missed) from logs
-   - notifyListeners()
-    ↓
-6. DashboardScreen rebuilds with real data
+// Inline converters
+class FrequencyConverter extends TypeConverter<Frequency, String> {
+  const FrequencyConverter();
+
+  @override
+  Frequency fromSql(String fromDb) {
+    return Frequency.values.firstWhere((e) => e.name == fromDb);
+  }
+
+  @override
+  String toSql(Frequency value) {
+    return value.name;
+  }
+}
+
+class DayListConverter extends TypeConverter<List<Day>, String> {
+  const DayListConverter();
+
+  @override
+  List<Day> fromSql(String fromDb) {
+    if (fromDb.isEmpty) return [];
+    final List<dynamic> decoded = jsonDecode(fromDb);
+    return decoded.map((e) => Day.values.firstWhere((d) => d.name == e)).toList();
+  }
+
+  @override
+  String toSql(List<Day> value) {
+    return jsonEncode(value.map((e) => e.name).toList());
+  }
+}
+
+@DataClassName('MedicationEntity')
+class Medications extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get name => text()();
+  TextColumn get dosageAmount => text()();
+  TextColumn get dosageUnit => text()();
+  TextColumn get frequency => text().map(const FrequencyConverter())();
+  TextColumn get selectedDays => text().map(const DayListConverter()).nullable()();
+  DateTimeColumn get createdAt => dateTime()();
+  BoolColumn get isActive => boolean().withDefault(const Constant(true))();
+}
 ```
 
-#### Marking Medication as Taken:
+**Step 1.2**: Create `lib/database/tables/medication_times_table.dart`
 
-```
-User taps "Take" button on MedicationCard
-    ↓
-1. DashboardScreen calls: viewModel.markAsTaken(medicationId, scheduledTime)
-    ↓
-2. DashboardViewModel:
-   - Calls: medicationService.markAsTaken(...)
-   - Optimistically updates local state
-   - notifyListeners()
-    ↓
-3. MedicationService.markAsTaken():
-   - Calls: medicationLogsDao.insertLog(...)
-   - Creates log entry with status="taken", taken_at=now
-    ↓
-4. Stream updates automatically via Drift's watchAllActiveMedications()
-    ↓
-5. UI reflects change immediately
+```dart
+import 'package:drift/drift.dart';
+import 'medications_table.dart';
+
+@DataClassName('MedicationTimeEntity')
+class MedicationTimes extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get medicationId => integer().references(Medications, #id, onDelete: KeyAction.cascade)();
+  IntColumn get hour => integer()();
+  IntColumn get minute => integer()();
+}
 ```
 
-### 4. Model Adjustments
+**Step 1.3**: Create `lib/database/tables/medication_logs_table.dart`
 
-#### Strategy: Hybrid Approach
+```dart
+import 'package:drift/drift.dart';
+import 'medications_table.dart';
+import 'medication_times_table.dart';
 
-**Keep existing models** for UI layer (clean, simple, no Drift dependencies):
-- `Medication` - UI model (current structure)
-- `MedicationData` - UI model with computed fields
-- `MedicationStatus`, `Frequency`, `Day` enums - unchanged
-
-**Create new models** for service/database layer:
-- `MedicationWithTimes` - Combines medication + list of times
-- `MedicationLog` - Represents log entry
-
-**Drift-generated classes** stay in database layer:
-- `MedicationEntity` (from Medications table)
-- `MedicationTimeEntity` (from MedicationTimes table)
-- `MedicationLogEntity` (from MedicationLogs table)
-
-#### Mapping Strategy:
-
-**Service layer acts as mapper**:
-```
-Database Layer (Drift entities)
-    ↕ MedicationService maps between
-UI Layer (Existing models)
+@DataClassName('MedicationLogEntity')
+class MedicationLogs extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get medicationId => integer().references(Medications, #id, onDelete: KeyAction.cascade)();
+  IntColumn get medicationTimeId => integer().references(MedicationTimes, #id, onDelete: KeyAction.cascade)();
+  DateTimeColumn get logDate => dateTime()();
+  TextColumn get status => text()();
+  DateTimeColumn get takenAt => dateTime().nullable()();
+}
 ```
 
-**Example mappings**:
+**Step 1.4**: Create `lib/database/app_database.dart`
 
-1. **AddMedicationViewModel → Database:**
-   - ViewModel holds: String name, String dosageAmount, String dosageUnit, Frequency frequency, Set<Day> selectedDays, List<TimeOfDay> times
-   - Service creates: MedicationsCompanion + List<MedicationTimesCompanion>
-   - Converters serialize: Frequency enum → String, Set<Day> → JSON array
+```dart
+import 'package:drift/drift.dart';
+import 'package:drift_flutter/drift_flutter.dart';
+import 'package:flutter/material.dart' show TimeOfDay;
 
-2. **Database → DashboardScreen:**
-   - DAO returns: MedicationEntity + List<MedicationTimeEntity> + List<MedicationLogEntity>
-   - Service creates: MedicationWithTimes (intermediate model)
-   - Service transforms to: List<MedicationData> with computed status and dueInfo
-   - ViewModel exposes: List<MedicationData> for UI
+import 'tables/medications_table.dart';
+import 'tables/medication_times_table.dart';
+import 'tables/medication_logs_table.dart';
 
-#### Why This Approach:
-- **Clean separation**: UI models stay simple, no Drift dependencies
-- **Flexibility**: Can change database without touching UI
-- **Type safety**: Drift generates type-safe queries
-- **Testability**: Can mock services easily
-- **Existing code**: Minimal changes to existing widgets/screens
+part 'app_database.g.dart';
 
-## Implementation Steps (Ordered)
+@DriftDatabase(tables: [Medications, MedicationTimes, MedicationLogs])
+class AppDatabase extends _$AppDatabase {
+  AppDatabase() : super(_openConnection());
 
-### Phase 1: Setup & Dependencies (30 minutes)
+  @override
+  int get schemaVersion => 1;
 
-**Step 1.1**: Update `pubspec.yaml` - DONE
-```yaml
-dependencies:
-  drift: ^2.14.0
-  drift_flutter: ^0.1.0
-  sqlite3_flutter_libs: ^0.5.0
-  path_provider: ^2.1.0
-  path: ^1.8.0
+  static QueryExecutor _openConnection() {
+    return driftDatabase(name: 'med_track_db');
+  }
 
-dev_dependencies:
-  drift_dev: ^2.14.0
-  build_runner: ^2.4.0
+  // ===== MEDICATION CRUD =====
+
+  Future<int> insertMedicationWithTimes({
+    required String name,
+    required String dosageAmount,
+    required String dosageUnit,
+    required Frequency frequency,
+    List<Day>? selectedDays,
+    required List<TimeOfDay> times,
+  }) async {
+    return await transaction(() async {
+      final medicationId = await into(medications).insert(
+        MedicationsCompanion.insert(
+          name: name,
+          dosageAmount: dosageAmount,
+          dosageUnit: dosageUnit,
+          frequency: frequency,
+          selectedDays: Value(selectedDays ?? []),
+          createdAt: DateTime.now(),
+        ),
+      );
+
+      for (final time in times) {
+        await into(medicationTimes).insert(
+          MedicationTimesCompanion.insert(
+            medicationId: medicationId,
+            hour: time.hour,
+            minute: time.minute,
+          ),
+        );
+      }
+
+      return medicationId;
+    });
+  }
+
+  Stream<List<MedicationEntity>> watchAllActiveMedications() {
+    return (select(medications)..where((m) => m.isActive.equals(true))).watch();
+  }
+
+  Future<List<MedicationTimeEntity>> getTimesForMedication(int medicationId) {
+    return (select(medicationTimes)..where((t) => t.medicationId.equals(medicationId))).get();
+  }
+
+  Future<void> softDeleteMedication(int medicationId) async {
+    await (update(medications)..where((m) => m.id.equals(medicationId)))
+        .write(const MedicationsCompanion(isActive: Value(false)));
+  }
+
+  // ===== LOG OPERATIONS =====
+
+  Future<int> insertLog({
+    required int medicationId,
+    required int medicationTimeId,
+    required DateTime logDate,
+    required String status,
+    DateTime? takenAt,
+  }) async {
+    return await into(medicationLogs).insert(
+      MedicationLogsCompanion.insert(
+        medicationId: medicationId,
+        medicationTimeId: medicationTimeId,
+        logDate: logDate,
+        status: status,
+        takenAt: Value(takenAt),
+      ),
+    );
+  }
+
+  Future<MedicationLogEntity?> getLogForTimeAndDate(int medicationTimeId, DateTime date) async {
+    final query = select(medicationLogs)
+      ..where((l) => l.medicationTimeId.equals(medicationTimeId) & l.logDate.equals(date));
+    return await query.getSingleOrNull();
+  }
+
+  Future<List<MedicationLogEntity>> getLogsInDateRange(DateTime start, DateTime end) {
+    final query = select(medicationLogs)
+      ..where((l) => l.logDate.isBiggerOrEqualValue(start) & l.logDate.isSmallerOrEqualValue(end));
+    return query.get();
+  }
+
+  Stream<List<MedicationLogEntity>> watchLogsForDate(DateTime date) {
+    return (select(medicationLogs)..where((l) => l.logDate.equals(date))).watch();
+  }
+}
 ```
 
-**Step 1.2**: Run dependency installation - DONE
-```bash
-flutter pub get
-```
+**Step 1.5**: Generate Drift code
 
-### Phase 2: Database Schema Definition (1-2 hours)
-
-**Step 2.1**: Create converters
-- `lib/database/converters/frequency_converter.dart`
-  - Extends `TypeConverter<Frequency, String>`
-  - Maps enum to/from string values
-
-- `lib/database/converters/day_list_converter.dart`
-  - Extends `TypeConverter<List<Day>, String>`
-  - Uses `jsonEncode`/`jsonDecode` to serialize Set<Day> as JSON array
-
-**Step 2.2**: Create table definitions
-- `lib/database/tables/medications_table.dart`
-  - Define `Medications` class extending `Table`
-  - Use `@UseRowClass(MedicationEntity)` annotation
-  - Apply `@TypeConverterAnnotation` for frequency and days
-
-- `lib/database/tables/medication_times_table.dart`
-  - Define `MedicationTimes` class extending `Table`
-  - Foreign key: `integer().references(Medications, #id).named('medication_id')()`
-
-- `lib/database/tables/medication_logs_table.dart`
-  - Define `MedicationLogs` class extending `Table`
-  - Foreign key to Medications table
-  - Use `datetime()` for timestamps
-
-**Step 2.3**: Create main database file
-- `lib/database/app_database.dart`
-  - Annotate with `@DriftDatabase(tables: [Medications, MedicationTimes, MedicationLogs])`
-  - Extend `_$AppDatabase`
-  - Implement `schemaVersion` (start at 1)
-  - Implement `migration` strategy (MigrationStrategy)
-  - Add `oncreate` callback for initial setup
-
-**Step 2.4**: Generate Drift code
 ```bash
 dart run build_runner build --delete-conflicting-outputs
 ```
 
-### Phase 3: Data Access Layer (2-3 hours)
+---
 
-**Step 3.1**: Create `lib/database/daos/medications_dao.dart`
-- Annotate with `@DriftAccessor(tables: [Medications, MedicationTimes])`
-- Methods to implement:
-  - `Future<int> insertMedicationWithTimes(...)` - transaction
-  - `Stream<List<MedicationWithTimesData>> watchAllActiveMedications()`
-  - `Future<MedicationWithTimesData?> getMedicationById(int id)`
-  - `Future<bool> updateMedication(...)`
-  - `Future<int> deleteMedication(int id)` - soft delete (set is_active=false)
-  - `Future<void> insertMedicationTime(...)` - for individual times
-  - `Future<void> deleteMedicationTimes(int medicationId)` - for updates
+### Phase 2: Service Layer (1.5 hours)
 
-**Step 3.2**: Create `lib/database/daos/medication_logs_dao.dart`
-- Annotate with `@DriftAccessor(tables: [MedicationLogs])`
-- Methods to implement:
-  - `Future<int> insertLog(...)`
-  - `Future<MedicationLogEntity?> getLogForMedicationAndTime(int medicationId, DateTime scheduledDate, TimeOfDay scheduledTime)`
-  - `Stream<List<MedicationLogEntity>> watchLogsForDate(DateTime date)`
-  - `Future<List<MedicationLogEntity>> getLogsInDateRange(DateTime start, DateTime end)`
-  - `Future<int> updateLogStatus(...)`
+**Step 2.1**: Create `lib/services/medication_service.dart`
 
-**Step 3.3**: Add DAOs to `app_database.dart`
-- Add getters for each DAO
-- Annotate `@DriftDatabase(tables: [...], daos: [MedicationsDao, MedicationLogsDao])`
-- Regenerate: `dart run build_runner build`
+```dart
+import 'package:flutter/material.dart';
+import 'package:med_track_v2/database/app_database.dart';
+import 'package:med_track_v2/models/medication.dart';
 
-### Phase 4: Service Layer (2-3 hours)
+class MedicationService {
+  final AppDatabase _db;
 
-**Step 4.1**: Create `lib/models/medication_with_times.dart`
-- Simple data class holding:
-  - Medication entity data
-  - List<TimeOfDay> times
-  - Factory constructor from Drift entities
-  - Method to convert to UI `MedicationData` model
+  MedicationService(this._db);
 
-**Step 4.2**: Create `lib/models/medication_log.dart`
-- Simple data class for log entries
-- Factory constructor from Drift entity
-- Methods for serialization if needed
+  // ===== ADD MEDICATION =====
 
-**Step 4.3**: Create `lib/services/medication_service.dart`
-- Constructor receives `AppDatabase` instance
-- Methods to implement:
-  - `Future<int> addMedication(String name, String dosageAmount, String dosageUnit, Frequency frequency, Set<Day> selectedDays, List<TimeOfDay> times)`
-    - Validates inputs
-    - Calls DAO methods
-    - Returns medication ID
-  - `Stream<List<MedicationWithTimes>> watchAllActiveMedications()`
-    - Returns stream from DAO
-    - Maps to intermediate model
-  - `Future<List<MedicationData>> getMedicationsForToday()`
-    - Gets medications from DAO
-    - Gets logs for today
-    - Computes status for each medication
-    - Returns list of MedicationData
-  - `Future<void> markAsTaken(int medicationId, DateTime scheduledDate, TimeOfDay scheduledTime)`
-    - Creates log entry with status="taken"
-  - `Future<void> markAsMissed(int medicationId, DateTime scheduledDate, TimeOfDay scheduledTime)`
-    - Creates log entry with status="missed"
-  - Error handling with try-catch throughout
+  Future<int> addMedication({
+    required String name,
+    required String dosageAmount,
+    required String dosageUnit,
+    required Frequency frequency,
+    List<Day>? selectedDays,
+    required List<TimeOfDay> times,
+  }) async {
+    try {
+      return await _db.insertMedicationWithTimes(
+        name: name,
+        dosageAmount: dosageAmount,
+        dosageUnit: dosageUnit,
+        frequency: frequency,
+        selectedDays: selectedDays,
+        times: times,
+      );
+    } catch (e) {
+      throw Exception('Failed to add medication: $e');
+    }
+  }
 
-**Step 4.4**: Create `lib/services/statistics_service.dart`
-- Constructor receives `AppDatabase` instance
-- Methods to implement:
-  - `Future<double> calculateWeeklyAdherence()`
-    - Queries logs for last 7 days
-    - Calculates (taken / (taken + missed)) * 100
-  - `Future<int> getCurrentStreak()`
-    - Queries logs to find consecutive days with 100% adherence
-  - `Future<List<StatItem>> getDashboardStats()`
-    - Calls above methods
-    - Returns list of StatItem models for UI
+  // ===== WATCH MEDICATIONS =====
 
-### Phase 5: ViewModel Updates (1-2 hours)
+  Stream<List<MedicationData>> watchTodaysMedications() async* {
+    await for (final medications in _db.watchAllActiveMedications()) {
+      final List<MedicationData> medicationDataList = [];
+      final now = DateTime.now();
+      final today = DateTime(now.year, now.month, now.day);
 
-**Step 5.1**: Update `lib/viewmodels/add_medication_viewmodel.dart`
-- Add `MedicationService` as constructor parameter
-- Add method: `Future<bool> saveMedication()`
-  - Validates all fields
-  - Calls `medicationService.addMedication(...)`
-  - Handles errors
-  - Returns success/failure
-- Add loading state: `bool _isSaving = false`
-- Add error state: `String? _errorMessage`
+      for (final med in medications) {
+        if (!_shouldShowToday(med, now)) continue;
 
-**Step 5.2**: Create `lib/viewmodels/dashboard_viewmodel.dart`
-- Extends `ChangeNotifier`
-- Constructor receives `MedicationService` and `StatisticsService`
-- State properties:
-  - `List<MedicationData> _medications = []`
-  - `List<StatItem> _stats = []`
-  - `bool _isLoading = true`
-  - `String? _errorMessage`
-- Methods:
-  - `Future<void> loadData()` - calls services, updates state
-  - `Future<void> markAsTaken(int medicationId, DateTime scheduledDate, TimeOfDay scheduledTime)`
-  - `Future<void> markAsMissed(...)`
-  - `Future<void> refresh()` - pull-to-refresh
-- Computed properties:
-  - `MedicationData? get nextDose` - filters upcoming medications
-  - `List<MedicationData> get todaysSchedule` - all for today
-- Initialize in constructor with `loadData()`
+        final times = await _db.getTimesForMedication(med.id);
 
-### Phase 6: Screen Updates (1-2 hours)
+        for (final time in times) {
+          final log = await _db.getLogForTimeAndDate(time.id, today);
+          final status = _calculateStatus(time, log, now);
 
-**Step 6.1**: Update `lib/screens/add_medication/medication_review.view.dart`
-- Modify "Add Medication" button onPressed (line 132):
-  ```dart
-  // OLD: Navigator.of(context).pop();
+          medicationDataList.add(
+            MedicationData(
+              medication: Medication(
+                id: med.id.toString(),
+                name: med.name,
+                dosage: '${med.dosageAmount} ${med.dosageUnit}',
+                time: TimeOfDay(hour: time.hour, minute: time.minute),
+                status: status,
+              ),
+              dueInfo: _getDueInfo(time, now),
+            ),
+          );
+        }
+      }
 
-  // NEW:
-  final success = await viewModel.saveMedication();
-  if (success && context.mounted) {
-    Navigator.of(context).pop();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Medication added successfully')),
+      medicationDataList.sort((a, b) {
+        final aMinutes = a.medication.time.hour * 60 + a.medication.time.minute;
+        final bMinutes = b.medication.time.hour * 60 + b.medication.time.minute;
+        return aMinutes.compareTo(bMinutes);
+      });
+
+      yield medicationDataList;
+    }
+  }
+
+  // ===== MARK AS TAKEN/MISSED =====
+
+  Future<void> markAsTaken(int medicationId, int medicationTimeId) async {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+
+    await _db.insertLog(
+      medicationId: medicationId,
+      medicationTimeId: medicationTimeId,
+      logDate: today,
+      status: 'taken',
+      takenAt: now,
     );
-  } else if (!success && context.mounted) {
-    // Show error dialog
   }
-  ```
-- Add loading overlay while saving
-- Handle viewModel error states
 
-**Step 6.2**: Refactor `lib/screens/dashboard.screen.dart`
-- Remove dummy data
-- Wrap with `ChangeNotifierProvider<DashboardViewModel>`
-- Replace setState with `context.watch<DashboardViewModel>()`
-- Update all data references to use viewModel getters
-- Update "Take" button to call `viewModel.markAsTaken(...)`
-- Add pull-to-refresh: `RefreshIndicator(onRefresh: viewModel.refresh)`
-- Add loading state handling
-- Add error state handling with retry button
-- Add empty state (when no medications)
+  Future<void> markAsMissed(int medicationId, int medicationTimeId) async {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
 
-### Phase 7: App Initialization (30 minutes)
-
-**Step 7.1**: Update `lib/main.dart`
-- Add database initialization in main():
-  ```dart
-  void main() async {
-    WidgetsFlutterBinding.ensureInitialized();
-
-    // Initialize database
-    final database = AppDatabase();
-
-    // Initialize services
-    final medicationService = MedicationService(database);
-    final statisticsService = StatisticsService(database);
-
-    runApp(MedTrackV2App(
-      medicationService: medicationService,
-      statisticsService: statisticsService,
-      database: database,
-    ));
+    await _db.insertLog(
+      medicationId: medicationId,
+      medicationTimeId: medicationTimeId,
+      logDate: today,
+      status: 'missed',
+      takenAt: null,
+    );
   }
-  ```
 
-**Step 7.2**: Update `MedTrackV2App` widget
-- Add constructor parameters for services
-- Wrap MaterialApp with `MultiProvider`:
-  ```dart
-  MultiProvider(
-    providers: [
-      Provider<AppDatabase>.value(value: database),
-      Provider<MedicationService>.value(value: medicationService),
-      Provider<StatisticsService>.value(value: statisticsService),
-      ChangeNotifierProvider(
-        create: (context) => DashboardViewModel(
-          medicationService: context.read<MedicationService>(),
-          statisticsService: context.read<StatisticsService>(),
-        ),
+  // ===== STATISTICS =====
+
+  Future<double> calculateWeeklyAdherence() async {
+    final now = DateTime.now();
+    final weekAgo = now.subtract(const Duration(days: 7));
+
+    final logs = await _db.getLogsInDateRange(weekAgo, now);
+
+    if (logs.isEmpty) return 0.0;
+
+    final taken = logs.where((l) => l.status == 'taken').length;
+    final total = logs.length;
+
+    return (taken / total) * 100;
+  }
+
+  Future<int> getCurrentStreak() async {
+    final now = DateTime.now();
+    int streak = 0;
+
+    for (int i = 0; i < 365; i++) {
+      final checkDate = DateTime(now.year, now.month, now.day).subtract(Duration(days: i));
+      final nextDate = checkDate.add(const Duration(days: 1));
+
+      final logs = await _db.getLogsInDateRange(checkDate, nextDate);
+
+      if (logs.isEmpty) break;
+
+      final taken = logs.where((l) => l.status == 'taken').length;
+      if (taken == logs.length) {
+        streak++;
+      } else {
+        break;
+      }
+    }
+
+    return streak;
+  }
+
+  Future<List<StatItem>> getDashboardStats() async {
+    final adherence = await calculateWeeklyAdherence();
+    final streak = await getCurrentStreak();
+
+    return [
+      StatItem(
+        icon: Icons.show_chart,
+        value: '${adherence.toStringAsFixed(0)}%',
+        label: 'Weekly Adherence',
+        color: Colors.blue,
+        animationDelay: 0.0,
       ),
-    ],
-    child: MaterialApp(...),
-  )
-  ```
+      StatItem(
+        icon: Icons.local_fire_department,
+        value: '$streak',
+        label: 'Day Streak',
+        color: Colors.orange,
+        animationDelay: 0.1,
+      ),
+    ];
+  }
 
-**Step 7.3**: Update AddMedicationScreen provider setup
-- Inject `MedicationService` into `AddMedicationViewModel`
-- Update ChangeNotifierProvider in navigation
+  // ===== PRIVATE HELPERS =====
 
-### Phase 8: Testing & Refinement (2-3 hours)
+  bool _shouldShowToday(MedicationEntity med, DateTime now) {
+    switch (med.frequency) {
+      case Frequency.daily:
+        return true;
+      case Frequency.specificDays:
+        final today = Day.values[now.weekday - 1];
+        return med.selectedDays?.contains(today) ?? false;
+      case Frequency.weekly:
+        return true;
+    }
+  }
 
-**Step 8.1**: Manual testing checklist
+  MedicationStatus _calculateStatus(MedicationTimeEntity time, MedicationLogEntity? log, DateTime now) {
+    if (log != null) {
+      return log.status == 'taken' ? MedicationStatus.taken : MedicationStatus.missed;
+    }
+
+    final scheduledTime = DateTime(now.year, now.month, now.day, time.hour, time.minute);
+    final difference = scheduledTime.difference(now).inMinutes;
+
+    if (difference <= 0 && difference >= -30) {
+      return MedicationStatus.takeNow;
+    } else if (difference > 0) {
+      return MedicationStatus.upcoming;
+    } else {
+      return MedicationStatus.missed;
+    }
+  }
+
+  String _getDueInfo(MedicationTimeEntity time, DateTime now) {
+    final scheduledTime = DateTime(now.year, now.month, now.day, time.hour, time.minute);
+    final difference = scheduledTime.difference(now);
+
+    if (difference.inMinutes <= 0) return 'Now';
+    if (difference.inHours < 1) return 'in ${difference.inMinutes}m';
+    return 'in ${difference.inHours}h';
+  }
+}
+```
+
+---
+
+### Phase 3: ViewModel Updates (1 hour)
+
+**Step 3.1**: Update `lib/viewmodels/add_medication_viewmodel.dart`
+
+Add to existing class:
+
+```dart
+final MedicationService _medicationService;
+
+AddMedicationViewModel(this._medicationService);
+
+bool _isSaving = false;
+bool get isSaving => _isSaving;
+
+Future<bool> saveMedication() async {
+  if (_medicationName.isEmpty || _dosageAmount.isEmpty || _times.isEmpty) {
+    return false;
+  }
+
+  _isSaving = true;
+  notifyListeners();
+
+  try {
+    await _medicationService.addMedication(
+      name: _medicationName,
+      dosageAmount: _dosageAmount,
+      dosageUnit: _dosageUnit,
+      frequency: _frequency,
+      selectedDays: _frequency == Frequency.specificDays ? _selectedDays.toList() : null,
+      times: _times,
+    );
+
+    _isSaving = false;
+    notifyListeners();
+    return true;
+  } catch (e) {
+    _isSaving = false;
+    notifyListeners();
+    return false;
+  }
+}
+```
+
+**Step 3.2**: Create `lib/viewmodels/dashboard_viewmodel.dart`
+
+```dart
+import 'package:flutter/material.dart';
+import 'package:med_track_v2/models/medication.dart';
+import 'package:med_track_v2/services/medication_service.dart';
+import 'dart:async';
+
+class DashboardViewModel extends ChangeNotifier {
+  final MedicationService _medicationService;
+
+  List<MedicationData> _medications = [];
+  List<StatItem> _stats = [];
+  bool _isLoading = true;
+  String? _errorMessage;
+  StreamSubscription? _medicationSubscription;
+
+  DashboardViewModel(this._medicationService) {
+    _init();
+  }
+
+  List<MedicationData> get medications => _medications;
+  List<StatItem> get stats => _stats;
+  bool get isLoading => _isLoading;
+  String? get errorMessage => _errorMessage;
+
+  MedicationData? get nextDose {
+    final upcoming = _medications.where((m) => m.medication.status == MedicationStatus.upcoming).toList();
+    return upcoming.isEmpty ? null : upcoming.first;
+  }
+
+  List<MedicationData> get todaysSchedule => _medications;
+
+  Future<void> _init() async {
+    _medicationSubscription = _medicationService.watchTodaysMedications().listen(
+      (medications) {
+        _medications = medications;
+        _isLoading = false;
+        notifyListeners();
+      },
+      onError: (error) {
+        _errorMessage = error.toString();
+        _isLoading = false;
+        notifyListeners();
+      },
+    );
+
+    await _loadStats();
+  }
+
+  Future<void> _loadStats() async {
+    try {
+      _stats = await _medicationService.getDashboardStats();
+      notifyListeners();
+    } catch (e) {
+      _errorMessage = e.toString();
+      notifyListeners();
+    }
+  }
+
+  Future<void> markAsTaken(int medicationId, int medicationTimeId) async {
+    try {
+      await _medicationService.markAsTaken(medicationId, medicationTimeId);
+      await _loadStats();
+    } catch (e) {
+      _errorMessage = e.toString();
+      notifyListeners();
+    }
+  }
+
+  Future<void> refresh() async {
+    _isLoading = true;
+    notifyListeners();
+    await _loadStats();
+  }
+
+  @override
+  void dispose() {
+    _medicationSubscription?.cancel();
+    super.dispose();
+  }
+}
+```
+
+---
+
+### Phase 4: UI Integration (1.5 hours)
+
+**Step 4.1**: Update `lib/main.dart`
+
+```dart
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  final database = AppDatabase();
+  final medicationService = MedicationService(database);
+
+  runApp(MedTrackV2App(
+    medicationService: medicationService,
+    database: database,
+  ));
+}
+
+class MedTrackV2App extends StatefulWidget {
+  final MedicationService medicationService;
+  final AppDatabase database;
+
+  const MedTrackV2App({
+    super.key,
+    required this.medicationService,
+    required this.database,
+  });
+
+  @override
+  State<MedTrackV2App> createState() => _MedTrackV2AppState();
+}
+
+class _MedTrackV2AppState extends State<MedTrackV2App> {
+  // ... existing theme code ...
+
+  @override
+  Widget build(BuildContext context) {
+    return MultiProvider(
+      providers: [
+        Provider<AppDatabase>.value(value: widget.database),
+        Provider<MedicationService>.value(value: widget.medicationService),
+        ChangeNotifierProvider(
+          create: (_) => DashboardViewModel(widget.medicationService),
+        ),
+      ],
+      child: MaterialApp(
+        // ... existing MaterialApp config ...
+      ),
+    );
+  }
+}
+```
+
+**Step 4.2**: Update `lib/screens/dashboard.screen.dart`
+
+Replace dummy data with ViewModel:
+
+```dart
+class DashboardScreen extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final viewModel = context.watch<DashboardViewModel>();
+
+    if (viewModel.isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (viewModel.errorMessage != null) {
+      return Center(child: Text('Error: ${viewModel.errorMessage}'));
+    }
+
+    return RefreshIndicator(
+      onRefresh: viewModel.refresh,
+      child: CustomScrollView(
+        // Use viewModel.medications, viewModel.stats, viewModel.nextDose
+        // Update "Take" button to call viewModel.markAsTaken(medicationId, timeId)
+      ),
+    );
+  }
+}
+```
+
+**Step 4.3**: Update `lib/screens/add_medication/medication_review.view.dart`
+
+Replace button handler (line ~132):
+
+```dart
+GradientButton(
+  text: viewModel.isSaving ? 'Saving...' : 'Add Medication',
+  onPressed: viewModel.isSaving ? null : () async {
+    final success = await viewModel.saveMedication();
+    if (success && context.mounted) {
+      Navigator.of(context).pop();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Medication added successfully!')),
+      );
+    } else if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to add medication')),
+      );
+    }
+  },
+)
+```
+
+**Step 4.4**: Update AddMedicationScreen navigation
+
+Wherever navigating to AddMedicationScreen:
+
+```dart
+Navigator.of(context).push(
+  MaterialPageRoute(
+    builder: (context) => ChangeNotifierProvider(
+      create: (context) => AddMedicationViewModel(
+        context.read<MedicationService>(),
+      ),
+      child: const AddMedicationScreen(),
+    ),
+  ),
+);
+```
+
+---
+
+### Phase 5: Testing (1.5 hours)
+
+**Manual Testing Checklist:**
 - [ ] Add medication with daily frequency
 - [ ] Add medication with specific days
 - [ ] Add medication with multiple times
 - [ ] Mark medication as taken
 - [ ] Verify dashboard updates immediately
 - [ ] Verify statistics calculate correctly
-- [ ] Test app restart (data persists)
+- [ ] Restart app - data persists
 - [ ] Test empty state (no medications)
-- [ ] Test error handling (invalid inputs)
 - [ ] Test theme switching with real data
 
-**Step 8.2**: Database inspection
-- Use Drift's debug tools or SQLite browser
-- Verify data structure matches schema
-- Check foreign key relationships
-- Verify timestamps are correct
+**Database Inspection:**
+- Use Drift Inspector or SQLite browser
+- Verify foreign key relationships
+- Check data integrity
 
-**Step 8.3**: Performance validation
-- Ensure no frame drops on dashboard
-- Check if streams update efficiently
-- Profile database queries (should be <16ms)
-
-**Step 8.4**: Clean up
-- Remove dummy data files (or comment out)
-- Remove unused imports
+**Code Quality:**
+- Remove dummy data files
 - Run `flutter analyze`
 - Fix any linting issues
 
-## Key Considerations & Best Practices
+---
 
-### Migration from Dummy Data
+## Timeline Summary
 
-**Approach 1: Clean Start** (Recommended for prototype)
-- Simply remove dummy data references
-- Fresh database on first run
-- Let users add medications manually
+- **Phase 1** (Schema): 1.5 hours
+- **Phase 2** (Service): 1.5 hours
+- **Phase 3** (ViewModels): 1 hour
+- **Phase 4** (UI): 1.5 hours
+- **Phase 5** (Testing): 1.5 hours
 
-**Approach 2: Seed Initial Data**
-- Create migration helper in `app_database.dart`
-- On first run (schemaVersion check), insert dummy medications
-- Useful for testing and demos
-
-### Error Handling Strategy
-
-**Database Layer (DAOs):**
-- Let Drift exceptions propagate up
-- Log errors for debugging
-
-**Service Layer:**
-- Wrap all DAO calls in try-catch
-- Convert exceptions to user-friendly messages
-- Return `Result<T>` type or use nullable returns with error properties
-
-**ViewModel Layer:**
-- Catch service errors
-- Set error state properties
-- Expose errors to UI via getters
-
-**UI Layer:**
-- Show SnackBars for temporary errors
-- Show dialogs for critical errors with retry
-- Show error widgets for loading failures
-
-### State Management Patterns
-
-**For Dashboard:**
-- Use `StreamProvider` + `DashboardViewModel` hybrid
-- Stream updates from database automatically refresh UI
-- ViewModel handles actions (markAsTaken, refresh)
-
-**For Add Medication:**
-- Keep `ChangeNotifierProvider` pattern
-- Single-shot operations (add medication)
-- Dispose properly to prevent memory leaks
-
-### Performance Optimizations
-
-**Database:**
-- Add indexes on frequently queried columns (medication_id in logs, scheduled_date)
-- Use `EXPLAIN QUERY PLAN` to optimize slow queries
-- Consider pagination for history screen (future)
-
-**UI:**
-- Use `const` constructors everywhere possible
-- Implement `shouldRebuild` in Provider selectors
-- Use `ListView.builder` for medication lists
-- Cache computed properties in viewmodels
-
-**Streams:**
-- Use single stream subscription in viewmodels
-- Dispose streams properly in dispose()
-- Consider debouncing rapid updates
-
-### Testing Strategy (Future)
-
-**Unit Tests:**
-- Test converters (Frequency, Day serialization)
-- Test service logic (statistics calculations)
-- Test ViewModel methods
-
-**Integration Tests:**
-- Test DAO methods with in-memory database
-- Test complete flows (add → retrieve → update)
-
-**Widget Tests:**
-- Test dashboard with mock services
-- Test add medication flow with mock viewmodel
-
-### Database Maintenance
-
-**Schema Versioning:**
-- Increment `schemaVersion` for any schema changes
-- Implement `onUpgrade` in MigrationStrategy
-- Document migrations in comments
-
-**Backup & Export:**
-- Future feature: Export database to JSON
-- Use Drift's `Export` functionality
-- Store backups in app documents directory
-
-### Code Organization Best Practices
-
-**Naming Conventions:**
-- Drift entities: `MedicationEntity`, `MedicationTimeEntity`
-- UI models: `Medication`, `MedicationData`
-- Intermediate models: `MedicationWithTimes`
-- Services: `MedicationService` (noun), methods are verbs
-- DAOs: `MedicationsDao` (plural)
-
-**Import Organization:**
-- Drift imports in database files only
-- Services import database types but not Drift
-- ViewModels import services only
-- UI imports models and viewmodels only
-
-**File Size Guidelines:**
-- Keep DAOs under 300 lines (split if needed)
-- Keep services under 400 lines
-- Extract complex queries to private methods
-
-## Potential Challenges & Solutions
-
-### Challenge 1: Status Calculation Complexity
-**Problem**: Determining if medication is "takeNow", "upcoming", "taken", or "missed" requires joining medications, times, and logs.
-
-**Solution**:
-- Create helper method in `MedicationService`: `_calculateStatus(medication, time, logs)`
-- Cache today's logs in memory (refresh on date change)
-- Use simple time comparison logic
-- Consider "take window" (e.g., 30 minutes before/after scheduled time)
-
-### Challenge 2: Multiple Times Per Day
-**Problem**: One medication can have 3+ times, each with different status.
-
-**Solution**:
-- Service returns separate `MedicationData` for each time
-- UI groups by medication name if needed
-- Status is per-time, not per-medication
-- Dashboard shows "next dose" as earliest upcoming time
-
-### Challenge 3: Weekly Frequency Handling
-**Problem**: Weekly medications (e.g., "every Monday") need special scheduling logic.
-
-**Solution**:
-- Service checks current day against `selectedDays` set
-- Only show medication if today is in selectedDays
-- Logs still track by date (not day-of-week)
-- Statistics account for different frequencies
-
-### Challenge 4: Timezone Issues
-**Problem**: DateTime serialization can lose timezone information.
-
-**Solution**:
-- Store all times in UTC
-- Convert to local time in UI layer
-- Use DateTime.now().toUtc() for timestamps
-- TimeOfDay is timezone-agnostic (just hour/minute)
-
-### Challenge 5: Database Migration After Release
-**Problem**: Adding new features requires schema changes without losing user data.
-
-**Solution**:
-- Always increment schemaVersion
-- Test migrations thoroughly
-- Implement `onUpgrade` callback in MigrationStrategy
-- Keep migrations code even after deployed
-- Document migration steps in comments
-
-## Success Metrics
-
-After implementation is complete, verify:
-
-- [ ] **Functionality**: Add medication → restart app → medication still there
-- [ ] **Performance**: Dashboard loads in <500ms with 20+ medications
-- [ ] **UI Responsiveness**: No frame drops when marking medications as taken
-- [ ] **Data Integrity**: Foreign keys enforced, no orphaned records
-- [ ] **Error Handling**: Graceful handling of all failure scenarios
-- [ ] **Code Quality**: Flutter analyze passes with no errors
-- [ ] **Architecture**: Clean separation between database, services, viewmodels, UI
-- [ ] **State Management**: Provider pattern maintained, no setState in business logic
-- [ ] **Testability**: Services can be mocked easily for testing
-
-## Estimated Timeline
-
-- **Phase 1** (Setup): 30 minutes
-- **Phase 2** (Schema): 1-2 hours
-- **Phase 3** (DAOs): 2-3 hours
-- **Phase 4** (Services): 2-3 hours
-- **Phase 5** (ViewModels): 1-2 hours
-- **Phase 6** (Screens): 1-2 hours
-- **Phase 7** (Initialization): 30 minutes
-- **Phase 8** (Testing): 2-3 hours
-
-**Total: 10-16 hours** (approximately 2-3 work days)
-
-## Next Steps After Implementation
-
-Once Drift integration is complete:
-
-1. **Add Edit Functionality**: Update medication details
-2. **Add Delete with Confirmation**: Soft delete with undo option
-3. **Implement History Screen**: Show logs with filtering
-4. **Add Statistics Dashboard**: Charts for adherence over time
-5. **Implement Local Notifications**: Remind users at scheduled times
-6. **Add Backup/Restore**: Export/import database as JSON
-7. **Implement Search/Filter**: Find medications quickly
-8. **Add Medication Photos**: Store images using path in database
-9. **Implement Recurring Schedules**: More complex frequency patterns
-10. **Add Cloud Sync**: Optional backup to user's cloud storage
+**Total: 5-7 hours**
 
 ---
 
-## Final Notes
+## Success Criteria
 
-This plan maintains the existing architecture while adding robust persistence. The key principles:
+- [ ] Add medication → restart app → medication persists
+- [ ] Dashboard loads in <500ms
+- [ ] No frame drops when marking medications
+- [ ] Statistics calculate correctly
+- [ ] Flutter analyze passes
+- [ ] Clean architecture maintained (Database → Service → ViewModel → UI)
 
-1. **Clean Architecture**: Database → Services → ViewModels → UI (one-way dependencies)
-2. **Provider Pattern**: Maintained throughout
-3. **Separation of Concerns**: Each layer has a single responsibility
-4. **Type Safety**: Drift provides compile-time query validation
-5. **Performance**: Streams enable reactive UI updates
-6. **Testability**: Services can be mocked for unit tests
-7. **Maintainability**: Clear file structure and naming conventions
-8. **Scalability**: Ready for future features (notifications, cloud sync, etc.)
+---
 
-The implementation should proceed phase by phase, testing each phase before moving to the next. The database layer should be tested independently before connecting to the UI.
+## Future Enhancements
+
+1. Add edit/delete functionality
+2. Implement history screen
+3. Add local notifications
+4. Implement data export
+5. Add search/filter capabilities
+6. Consider splitting service when it exceeds 500 lines
