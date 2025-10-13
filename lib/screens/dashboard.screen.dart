@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:med_track_v2/data/dummy_data.dart';
 import 'package:med_track_v2/models/medication.dart';
 import 'package:med_track_v2/screens/add_medication/add_medication.screen.dart';
 import 'package:med_track_v2/theme/app_colors.dart';
@@ -26,9 +25,9 @@ class _DashboardScreenState extends State<DashboardScreen>
   late AnimationController _fadeController;
   late Animation<double> _fadeAnimation;
 
-  final List<MedicationData> _medications = dummyData;
+  final List<MedicationData> _medications = [];
 
-  final List<StatItem> _stats = dummyStats;
+  final List<StatItem> _stats = [];
 
   final List<BottomNavItem> _navItems = [
     BottomNavItem(icon: Icons.medication, label: 'Medications'),
@@ -167,26 +166,28 @@ class _DashboardScreenState extends State<DashboardScreen>
                 isDarkMode: _isDarkMode,
               ),
               Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(24),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      ProgressCard(
-                        progress: _getProgress(),
-                        completedCount: _getCompletedCount(),
-                        totalCount: _medications.length,
-                      ),
-                      const SizedBox(height: 24),
-                      _buildNextDoseSection(),
-                      const SizedBox(height: 24),
-                      _buildTodayScheduleSection(),
-                      const SizedBox(height: 24),
-                      QuickStatsSection(stats: _stats),
-                      const SizedBox(height: 100),
-                    ],
-                  ),
-                ),
+                child: _medications.isNotEmpty
+                    ? SingleChildScrollView(
+                        padding: const EdgeInsets.all(24),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            ProgressCard(
+                              progress: _getProgress(),
+                              completedCount: _getCompletedCount(),
+                              totalCount: _medications.length,
+                            ),
+                            const SizedBox(height: 24),
+                            _buildNextDoseSection(),
+                            const SizedBox(height: 24),
+                            _buildTodayScheduleSection(),
+                            const SizedBox(height: 24),
+                            QuickStatsSection(stats: _stats),
+                            const SizedBox(height: 100),
+                          ],
+                        ),
+                      )
+                    : Container(),
               ),
             ],
           ),
