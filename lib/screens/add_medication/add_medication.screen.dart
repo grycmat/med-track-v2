@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:med_track_v2/screens/add_medication/medication_details.view.dart';
 import 'package:med_track_v2/screens/add_medication/medication_frequency.view.dart';
 import 'package:med_track_v2/screens/add_medication/medication_review.view.dart';
+import 'package:med_track_v2/services/medication_service.dart';
 import 'package:med_track_v2/viewmodels/add_medication_viewmodel.dart';
 import 'package:med_track_v2/widgets/custom_app_bar.widget.dart';
 import 'package:med_track_v2/widgets/step_progress_bar.widget.dart';
@@ -46,8 +47,10 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final medicationService = Provider.of<MedicationService>(context, listen: false);
+
     return ChangeNotifierProvider(
-      create: (_) => AddMedicationViewModel(),
+      create: (_) => AddMedicationViewModel(medicationService),
       child: Scaffold(
         appBar: const CustomAppBar(
           greeting: 'Add Medication',

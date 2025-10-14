@@ -1,12 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:med_track_v2/services/medication_service.dart';
 
 class AddMedicationViewModel extends ChangeNotifier {
+  final MedicationService _medicationService;
+
   String? _medicationName;
   String? _dosageAmount;
   String _dosageUnit = 'pill(s)';
   Frequency _frequency = Frequency.daily;
   final Set<Day> _selectedDays = {};
   final List<TimeOfDay> _times = [];
+  bool _isLoading = false;
+
+  AddMedicationViewModel(this._medicationService);
 
   String? get medicationName => _medicationName;
   String? get dosageAmount => _dosageAmount;
@@ -17,6 +23,7 @@ class AddMedicationViewModel extends ChangeNotifier {
   Frequency get frequency => _frequency;
   Set<Day> get selectedDays => _selectedDays;
   List<TimeOfDay> get times => _times;
+  bool get isLoading => _isLoading;
 
   void setMedicationName(String name) {
     _medicationName = name;
@@ -55,6 +62,62 @@ class AddMedicationViewModel extends ChangeNotifier {
   void removeTime(TimeOfDay time) {
     _times.remove(time);
     notifyListeners();
+  }
+
+  Future<bool> saveMedication() async {
+    if (!_validateMedicationData()) {
+      return false;
+    }
+
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      await _medicationService.addMedication(
+        name: _medicationName!,
+        dosageAmount: _dosageAmount!,
+        dosageUnit: _dosageUnit,
+        frequency: _frequency,
+        selectedDays: _selectedDays,
+        times: _times,
+      );
+
+      _isLoading = false;
+      notifyListeners();
+      return true;
+    } catch (error) {
+      debugPrint('Error saving medication: $error');
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  void resetForm() {
+    _medicationName = null;
+    _dosageAmount = null;
+    _dosageUnit = 'pill(s)';
+    _frequency = Frequency.daily;
+    _selectedDays.clear();
+    _times.clear();
+    _isLoading = false;
+    notifyListeners();
+  }
+
+  bool _validateMedicationData() {
+    if (_medicationName == null || _medicationName!.trim().isEmpty) {
+      return false;
+    }
+    if (_dosageAmount == null || _dosageAmount!.trim().isEmpty) {
+      return false;
+    }
+    if (_times.isEmpty) {
+      return false;
+    }
+    if (_frequency == Frequency.specificDays && _selectedDays.isEmpty) {
+      return false;
+    }
+    return true;
   }
 }
 

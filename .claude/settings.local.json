@@ -4,7 +4,12 @@
       "Bash(flutter:*)",
       "Bash(git init:*)",
       "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "WebSearch",
+      "mcp__context7__resolve-library-id",
+      "mcp__context7__get-library-docs",
+      "Bash(dart run build_runner build:*)",
+      "Bash(dart analyze:*)"
     ],
     "deny": [],
     "ask": []

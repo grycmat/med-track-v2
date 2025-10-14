@@ -17,6 +17,8 @@ class Medication {
 }
 
 class MedicationData {
+  final int id;
+  final int timeId;
   final String name;
   final String dosage;
   final String time;
@@ -25,6 +27,8 @@ class MedicationData {
   final IconData? icon;
 
   const MedicationData({
+    required this.id,
+    required this.timeId,
     required this.name,
     required this.dosage,
     required this.time,
@@ -34,6 +38,8 @@ class MedicationData {
   });
 
   MedicationData copyWith({
+    int? id,
+    int? timeId,
     String? name,
     String? dosage,
     String? time,
@@ -42,6 +48,8 @@ class MedicationData {
     IconData? icon,
   }) {
     return MedicationData(
+      id: id ?? this.id,
+      timeId: timeId ?? this.timeId,
       name: name ?? this.name,
       dosage: dosage ?? this.dosage,
       time: time ?? this.time,

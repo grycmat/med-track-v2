@@ -2,14 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:med_track_v2/models/medication.dart';
 import 'package:med_track_v2/screens/add_medication/add_medication.screen.dart';
+import 'package:med_track_v2/services/medication_service.dart';
 import 'package:med_track_v2/theme/app_colors.dart';
 import 'package:med_track_v2/theme/app_theme.dart';
+import 'package:med_track_v2/viewmodels/dashboard_viewmodel.dart';
 import 'package:med_track_v2/widgets/custom_app_bar.widget.dart';
 import 'package:med_track_v2/widgets/custom_bottom_navigation.widget.dart';
 import 'package:med_track_v2/widgets/fab/fab.widget.dart';
 import 'package:med_track_v2/widgets/medication_card.widget.dart';
 import 'package:med_track_v2/widgets/progress_card.widget.dart';
 import 'package:med_track_v2/widgets/stats_card.widget.dart';
+import 'package:provider/provider.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -24,10 +27,6 @@ class _DashboardScreenState extends State<DashboardScreen>
   bool _isDarkMode = false;
   late AnimationController _fadeController;
   late Animation<double> _fadeAnimation;
-
-  final List<MedicationData> _medications = [];
-
-  final List<StatItem> _stats = [];
 
   final List<BottomNavItem> _navItems = [
     BottomNavItem(icon: Icons.medication, label: 'Medications'),
@@ -73,34 +72,10 @@ class _DashboardScreenState extends State<DashboardScreen>
     HapticFeedback.lightImpact();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: const Text('You have 2 upcoming medications'),
+        content: const Text('You have upcoming medications'),
         backgroundColor: _isDarkMode
             ? AppColors.darkPrimary
             : AppColors.lightPrimary,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      ),
-    );
-  }
-
-  void _onTakeNow(String medicationName) {
-    HapticFeedback.mediumImpact();
-    setState(() {
-      final index = _medications.indexWhere(
-        (med) => med.name == medicationName,
-      );
-      if (index != -1) {
-        _medications[index] = _medications[index].copyWith(
-          status: MedicationStatus.taken,
-          dueInfo: null,
-        );
-      }
-    });
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('$medicationName marked as taken'),
-        backgroundColor: AppColors.success,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
@@ -121,91 +96,127 @@ class _DashboardScreenState extends State<DashboardScreen>
     return 'Good evening';
   }
 
-  int _getCompletedCount() {
-    return _medications
-        .where((med) => med.status == MedicationStatus.taken)
-        .length;
-  }
-
-  double _getProgress() {
-    final completed = _getCompletedCount();
-    return completed / _medications.length;
-  }
-
-  MedicationData? _getNextDose() {
-    return _medications
-            .where((med) => med.status == MedicationStatus.upcoming)
-            .isNotEmpty
-        ? _medications.firstWhere(
-            (med) => med.status == MedicationStatus.upcoming,
-          )
-        : null;
-  }
-
-  List<MedicationData> _getTodaySchedule() {
-    return _medications
-        .where((med) => med.status != MedicationStatus.takeNow)
-        .toList();
-  }
-
   @override
   Widget build(BuildContext context) {
-    return Theme(
-      data: _isDarkMode ? AppTheme.darkTheme : AppTheme.lightTheme,
-      child: Scaffold(
-        body: FadeTransition(
-          opacity: _fadeAnimation,
-          child: Column(
-            children: [
-              CustomAppBar(
-                greeting: _getGreeting(),
-                userName: 'Alex',
-                hasNotification: true,
-                onNotificationTap: _onNotificationTap,
-                onThemeToggle: _toggleTheme,
-                isDarkMode: _isDarkMode,
-              ),
-              Expanded(
-                child: _medications.isNotEmpty
-                    ? SingleChildScrollView(
+    final medicationService = Provider.of<MedicationService>(context, listen: false);
+
+    return ChangeNotifierProvider(
+      create: (_) => DashboardViewModel(medicationService)
+        ..loadDashboardData()
+        ..startWatchingMedications(),
+      child: Theme(
+        data: _isDarkMode ? AppTheme.darkTheme : AppTheme.lightTheme,
+        child: Scaffold(
+          body: FadeTransition(
+            opacity: _fadeAnimation,
+            child: Column(
+              children: [
+                CustomAppBar(
+                  greeting: _getGreeting(),
+                  userName: 'Alex',
+                  hasNotification: true,
+                  onNotificationTap: _onNotificationTap,
+                  onThemeToggle: _toggleTheme,
+                  isDarkMode: _isDarkMode,
+                ),
+                Expanded(
+                  child: Consumer<DashboardViewModel>(
+                    builder: (context, viewModel, child) {
+                      if (viewModel.isLoading) {
+                        return const Center(
+                          child: CircularProgressIndicator(),
+                        );
+                      }
+
+                      if (viewModel.todaysMedications.isEmpty) {
+                        return _buildEmptyState();
+                      }
+
+                      return SingleChildScrollView(
                         padding: const EdgeInsets.all(24),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            ProgressCard(
-                              progress: _getProgress(),
-                              completedCount: _getCompletedCount(),
-                              totalCount: _medications.length,
-                            ),
+                            _buildProgressCard(viewModel),
                             const SizedBox(height: 24),
-                            _buildNextDoseSection(),
+                            _buildNextDoseSection(viewModel),
                             const SizedBox(height: 24),
-                            _buildTodayScheduleSection(),
+                            _buildTodayScheduleSection(viewModel),
                             const SizedBox(height: 24),
-                            QuickStatsSection(stats: _stats),
+                            QuickStatsSection(stats: viewModel.stats),
                             const SizedBox(height: 100),
                           ],
                         ),
-                      )
-                    : Container(),
-              ),
-            ],
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
-        floatingActionButton: CustomFloatingActionButton(
-          onPressed: _onAddMedication,
-        ),
-        bottomNavigationBar: CustomBottomNavigation(
-          currentIndex: _currentNavIndex,
-          onTap: _onNavTap,
-          items: _navItems,
+          floatingActionButton: CustomFloatingActionButton(
+            onPressed: _onAddMedication,
+          ),
+          bottomNavigationBar: CustomBottomNavigation(
+            currentIndex: _currentNavIndex,
+            onTap: _onNavTap,
+            items: _navItems,
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildNextDoseSection() {
-    final nextDose = _getNextDose();
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.medication_outlined,
+            size: 80,
+            color: (_isDarkMode ? AppColors.darkText : AppColors.lightText)
+                .withOpacity(0.3),
+          ),
+          const SizedBox(height: 24),
+          Text(
+            'No medications yet',
+            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+              color: _isDarkMode
+                  ? AppColors.darkHeader
+                  : AppColors.lightHeader,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Tap the + button to add your first medication',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: (_isDarkMode ? AppColors.darkText : AppColors.lightText)
+                  .withOpacity(0.7),
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProgressCard(DashboardViewModel viewModel) {
+    final completed = viewModel.todaysMedications
+        .where((med) => med.status == MedicationStatus.taken)
+        .length;
+    final total = viewModel.todaysMedications.length;
+    final progress = total > 0 ? completed / total : 0.0;
+
+    return ProgressCard(
+      progress: progress,
+      completedCount: completed,
+      totalCount: total,
+    );
+  }
+
+  Widget _buildNextDoseSection(DashboardViewModel viewModel) {
+    final nextDose = viewModel.nextDose;
     if (nextDose == null) {
       return Container();
     }
@@ -220,21 +231,31 @@ class _DashboardScreenState extends State<DashboardScreen>
           },
         ),
         const SizedBox(height: 16),
-        MedicationCard(
-          name: nextDose.name,
-          dosage: nextDose.dosage,
-          time: nextDose.time,
-          status: nextDose.status,
-          dueInfo: nextDose.dueInfo,
-          customIcon: nextDose.icon,
-          onTakeNow: () => _onTakeNow(nextDose.name),
+        Consumer<DashboardViewModel>(
+          builder: (context, vm, child) {
+            return MedicationCard(
+              name: nextDose.name,
+              dosage: nextDose.dosage,
+              time: nextDose.time,
+              status: nextDose.status,
+              dueInfo: nextDose.dueInfo,
+              customIcon: nextDose.icon,
+              onTakeNow: () => _onTakeNow(vm, nextDose),
+            );
+          },
         ),
       ],
     );
   }
 
-  Widget _buildTodayScheduleSection() {
-    final schedule = _getTodaySchedule();
+  Widget _buildTodayScheduleSection(DashboardViewModel viewModel) {
+    final schedule = viewModel.todaysMedications
+        .where((med) => med.status != MedicationStatus.takeNow)
+        .toList();
+
+    if (schedule.isEmpty) {
+      return Container();
+    }
 
     return Column(
       children: [
@@ -244,16 +265,37 @@ class _DashboardScreenState extends State<DashboardScreen>
         ),
         const SizedBox(height: 16),
         ...schedule.map(
-          (medication) => MedicationCard(
-            name: medication.name,
-            dosage: medication.dosage,
-            time: medication.time,
-            status: medication.status,
-            dueInfo: medication.dueInfo,
-            customIcon: medication.icon,
+          (medication) => Consumer<DashboardViewModel>(
+            builder: (context, vm, child) {
+              return MedicationCard(
+                name: medication.name,
+                dosage: medication.dosage,
+                time: medication.time,
+                status: medication.status,
+                dueInfo: medication.dueInfo,
+                customIcon: medication.icon,
+                onTakeNow: medication.status == MedicationStatus.upcoming
+                    ? () => _onTakeNow(vm, medication)
+                    : null,
+              );
+            },
           ),
         ),
       ],
+    );
+  }
+
+  void _onTakeNow(DashboardViewModel viewModel, MedicationData medication) {
+    HapticFeedback.mediumImpact();
+    viewModel.markMedicationTaken(medication.id, medication.timeId);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('${medication.name} marked as taken'),
+        backgroundColor: AppColors.success,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
     );
   }
 

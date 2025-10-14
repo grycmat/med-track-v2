@@ -1,10 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:med_track_v2/database/app_database.dart';
 import 'package:med_track_v2/screens/dashboard.screen.dart';
+import 'package:med_track_v2/services/medication_service.dart';
 import 'package:med_track_v2/theme/app_theme.dart';
+import 'package:provider/provider.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  final database = AppDatabase();
+  final medicationService = MedicationService(database);
 
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
@@ -14,22 +20,36 @@ void main() {
     ),
   );
 
-  SystemChrome.setPreferredOrientations([
+  await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
   ]);
 
-  runApp(MedTrackV2App());
+  runApp(MedTrackV2App(medicationService: medicationService));
 }
 
-class MedTrackV2App extends StatefulWidget {
-  const MedTrackV2App({super.key});
+class MedTrackV2App extends StatelessWidget {
+  final MedicationService medicationService;
+
+  const MedTrackV2App({super.key, required this.medicationService});
 
   @override
-  State<MedTrackV2App> createState() => _MedTrackV2AppState();
+  Widget build(BuildContext context) {
+    return Provider<MedicationService>.value(
+      value: medicationService,
+      child: AppWrapper(),
+    );
+  }
 }
 
-class _MedTrackV2AppState extends State<MedTrackV2App> {
+class AppWrapper extends StatefulWidget {
+  const AppWrapper({super.key});
+
+  @override
+  State<AppWrapper> createState() => _AppWrapperState();
+}
+
+class _AppWrapperState extends State<AppWrapper> {
   ThemeMode _themeMode = ThemeMode.system;
 
   void _updateThemeMode(ThemeMode themeMode) {
@@ -46,7 +66,7 @@ class _MedTrackV2AppState extends State<MedTrackV2App> {
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
       themeMode: _themeMode,
-      home: AppWrapper(
+      home: ThemeModeProvider(
         onThemeChanged: _updateThemeMode,
         child: DashboardScreen(),
       ),
@@ -64,21 +84,21 @@ class _MedTrackV2AppState extends State<MedTrackV2App> {
   }
 }
 
-class AppWrapper extends InheritedWidget {
+class ThemeModeProvider extends InheritedWidget {
   final Function(ThemeMode) onThemeChanged;
 
-  const AppWrapper({
+  const ThemeModeProvider({
     super.key,
     required this.onThemeChanged,
     required super.child,
   });
 
-  static AppWrapper? of(BuildContext context) {
-    return context.dependOnInheritedWidgetOfExactType<AppWrapper>();
+  static ThemeModeProvider? of(BuildContext context) {
+    return context.dependOnInheritedWidgetOfExactType<ThemeModeProvider>();
   }
 
   @override
-  bool updateShouldNotify(AppWrapper oldWidget) {
+  bool updateShouldNotify(ThemeModeProvider oldWidget) {
     return onThemeChanged != oldWidget.onThemeChanged;
   }
 }

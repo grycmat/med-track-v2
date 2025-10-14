@@ -291,6 +291,8 @@ class MedicationService {
     final dosage = '${medication.dosageAmount} ${medication.dosageUnit}';
 
     return models.MedicationData(
+      id: medication.id,
+      timeId: time.id,
       name: medication.name,
       dosage: dosage,
       time: timeString,

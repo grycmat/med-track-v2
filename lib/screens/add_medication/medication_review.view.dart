@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:med_track_v2/theme/app_colors.dart';
 import 'package:med_track_v2/viewmodels/add_medication_viewmodel.dart';
 import 'package:med_track_v2/widgets/add_medication/review_item.widget.dart';
@@ -126,10 +127,52 @@ class MedicationReviewView extends StatelessWidget {
       ),
       bottomNavigationBar: Padding(
         padding: const EdgeInsets.all(24.0),
-        child: GradientButton(
-          text: 'Confirm',
-          onPressed: () {
-            Navigator.of(context).pop();
+        child: Consumer<AddMedicationViewModel>(
+          builder: (context, viewModel, child) {
+            return GradientButton(
+              text: viewModel.isLoading ? 'Saving...' : 'Add Medication',
+              onPressed: viewModel.isLoading
+                  ? () {}
+                  : () async {
+                      showDialog(
+                        context: context,
+                        barrierDismissible: false,
+                        builder: (context) => const Center(
+                          child: CircularProgressIndicator(),
+                        ),
+                      );
+
+                      final success = await viewModel.saveMedication();
+
+                      if (context.mounted) {
+                        Navigator.of(context).pop();
+                      }
+
+                      if (success) {
+                        HapticFeedback.mediumImpact();
+                        viewModel.resetForm();
+
+                        if (context.mounted) {
+                          Navigator.of(context).popUntil((route) => route.isFirst);
+                        }
+                      } else {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: const Text(
+                                'Failed to add medication. Please try again.',
+                              ),
+                              backgroundColor: AppColors.error,
+                              behavior: SnackBarBehavior.floating,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                          );
+                        }
+                      }
+                    },
+            );
           },
         ),
       ),
