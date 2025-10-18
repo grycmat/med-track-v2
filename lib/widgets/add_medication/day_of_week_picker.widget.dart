@@ -50,7 +50,7 @@ class DayOfWeekPicker extends StatelessWidget {
                                       (isDark
                                               ? AppColors.darkPrimary
                                               : AppColors.lightPrimary)
-                                          .withOpacity(0.4),
+                                          .withValues(alpha: 0.4),
                                   blurRadius: 8,
                                   offset: const Offset(0, 4),
                                 ),

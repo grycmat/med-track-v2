@@ -245,7 +245,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
         boxShadow: [
           BoxShadow(
             color: (isDark ? AppColors.darkPrimary : AppColors.lightPrimary)
-                .withOpacity(0.4),
+                .withValues(alpha: 0.4),
             blurRadius: 30,
             offset: const Offset(0, 10),
             spreadRadius: 5,
@@ -322,7 +322,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                 Container(
                   decoration: BoxDecoration(
                     color: isDark
-                        ? AppColors.darkAccent.withOpacity(0.3)
+                        ? AppColors.darkAccent.withValues(alpha: 0.3)
                         : Colors.white,
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
@@ -331,7 +331,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                           : (isDark
                                   ? AppColors.darkPrimary
                                   : AppColors.lightPrimary)
-                              .withOpacity(0.3),
+                              .withValues(alpha: 0.3),
                       width: 2,
                     ),
                     boxShadow: [
@@ -339,7 +339,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                         color: (isDark
                                 ? AppColors.darkPrimary
                                 : AppColors.lightPrimary)
-                            .withOpacity(0.1),
+                            .withValues(alpha: 0.1),
                         blurRadius: 12,
                         offset: const Offset(0, 4),
                       ),
@@ -360,7 +360,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                       hintText: 'Enter your name',
                       hintStyle: TextStyle(
                         color: (isDark ? AppColors.darkText : AppColors.lightText)
-                            .withOpacity(0.5),
+                            .withValues(alpha: 0.5),
                         fontWeight: FontWeight.w500,
                       ),
                       border: InputBorder.none,

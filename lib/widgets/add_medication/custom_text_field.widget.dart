@@ -42,7 +42,7 @@ class CustomTextField extends StatelessWidget {
           style: TextStyle(color: isDark ? AppColors.darkText : AppColors.lightText),
           decoration: InputDecoration(
             hintText: hintText,
-            hintStyle: TextStyle(color: (isDark ? AppColors.darkText : AppColors.lightText).withOpacity(0.5)),
+            hintStyle: TextStyle(color: (isDark ? AppColors.darkText : AppColors.lightText).withValues(alpha: 0.5)),
             prefixIcon: Icon(icon, color: isDark ? AppColors.darkPrimary : AppColors.lightPrimary, size: 20),
             filled: true,
             fillColor: theme.cardColor,

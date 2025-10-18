@@ -33,7 +33,8 @@ class ReviewItem extends StatelessWidget {
                 Text(
                   label,
                   style: theme.textTheme.bodyMedium?.copyWith(
-                    color: (isDark ? AppColors.darkText : AppColors.lightText).withOpacity(0.7),
+                    color: (isDark ? AppColors.darkText : AppColors.lightText)
+                        .withValues(alpha: 0.7),
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -47,7 +48,10 @@ class ReviewItem extends StatelessWidget {
               ],
             ),
             IconButton(
-              icon: Icon(Icons.edit_outlined, color: isDark ? AppColors.darkPrimary : AppColors.lightPrimary),
+              icon: Icon(
+                Icons.edit_outlined,
+                color: isDark ? AppColors.darkPrimary : AppColors.lightPrimary,
+              ),
               onPressed: onEdit,
             ),
           ],

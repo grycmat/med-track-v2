@@ -53,7 +53,7 @@ class TimeOfDayWidget extends StatelessWidget {
                   background: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 20),
                     decoration: BoxDecoration(
-                      color: AppColors.error.withOpacity(0.8),
+                      color: AppColors.error.withValues(alpha: 0.8),
                       borderRadius: BorderRadius.circular(16),
                     ),
                     child: const Align(

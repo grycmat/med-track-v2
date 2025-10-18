@@ -50,7 +50,8 @@ class MedicationFrequencyView extends StatelessWidget {
             Text(
               'Set the frequency for your medication.',
               style: theme.textTheme.titleMedium?.copyWith(
-                color: (isDark ? AppColors.darkText : AppColors.lightText).withOpacity(0.7),
+                color: (isDark ? AppColors.darkText : AppColors.lightText)
+                    .withValues(alpha: 0.7),
               ),
               textAlign: TextAlign.center,
             ),

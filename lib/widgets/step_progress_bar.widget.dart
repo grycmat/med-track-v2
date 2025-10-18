@@ -107,7 +107,7 @@ class _StepProgressBarState extends State<StepProgressBar>
           decoration: BoxDecoration(
             color: isDark
                 ? AppColors.darkAccent
-                : AppColors.lightSecondary.withOpacity(0.3),
+                : AppColors.lightSecondary.withValues(alpha: 0.3),
             borderRadius: BorderRadius.circular(4),
           ),
           child: AnimatedBuilder(
@@ -129,7 +129,7 @@ class _StepProgressBarState extends State<StepProgressBar>
                           color: (isDark
                                   ? AppColors.darkPrimary
                                   : AppColors.lightPrimary)
-                              .withOpacity(0.4),
+                              .withValues(alpha: 0.4),
                           blurRadius: 8,
                           offset: const Offset(0, 2),
                         ),

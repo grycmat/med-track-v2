@@ -54,7 +54,7 @@ class MedicationDetailsView extends StatelessWidget {
               'Start by telling us the name and dosage.',
               style: theme.textTheme.titleMedium?.copyWith(
                 color: (isDark ? AppColors.darkText : AppColors.lightText)
-                    .withOpacity(0.7),
+                    .withValues(alpha: 0.7),
               ),
               textAlign: TextAlign.center,
             ),

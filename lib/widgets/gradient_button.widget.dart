@@ -118,7 +118,7 @@ class _GradientButtonState extends State<GradientButton>
                 borderRadius: widget.borderRadius ?? BorderRadius.circular(28),
                 boxShadow: [
                   BoxShadow(
-                    color: shadowColor.withOpacity(0.4),
+                    color: shadowColor.withValues(alpha: 0.4),
                     blurRadius: _elevationAnimation.value,
                     offset: Offset(0, _elevationAnimation.value / 2),
                     spreadRadius: 0,
@@ -219,15 +219,15 @@ class _GradientButtonState extends State<GradientButton>
     if (isDark) {
       return LinearGradient(
         colors: [
-          AppColors.darkSecondary.withOpacity(0.6),
-          AppColors.darkAccent.withOpacity(0.6),
+          AppColors.darkSecondary.withValues(alpha: 0.6),
+          AppColors.darkAccent.withValues(alpha: 0.6),
         ],
       );
     }
     return LinearGradient(
       colors: [
-        AppColors.lightSecondary.withOpacity(0.6),
-        AppColors.lightAccent.withOpacity(0.6),
+        AppColors.lightSecondary.withValues(alpha: 0.6),
+        AppColors.lightAccent.withValues(alpha: 0.6),
       ],
     );
   }
@@ -274,14 +274,14 @@ class PillButton extends StatelessWidget {
                                 (isDark
                                     ? AppColors.darkPrimary
                                     : AppColors.lightPrimary))
-                            .withOpacity(0.4),
+                            .withValues(alpha: 0.4),
                     blurRadius: 8,
                     offset: const Offset(0, 4),
                   ),
                 ]
               : [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
+                    color: Colors.black.withValues(alpha: 0.1),
                     blurRadius: 4,
                     offset: const Offset(0, 2),
                   ),

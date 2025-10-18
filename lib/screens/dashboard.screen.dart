@@ -7,8 +7,9 @@ import 'package:med_track_v2/theme/app_colors.dart';
 import 'package:med_track_v2/theme/app_theme.dart';
 import 'package:med_track_v2/viewmodels/dashboard_viewmodel.dart';
 import 'package:med_track_v2/viewmodels/user_preferences_viewmodel.dart';
+import 'package:med_track_v2/widgets/bottom_navigation/bottom_nav_item.dart';
+import 'package:med_track_v2/widgets/bottom_navigation/custom_bottom_navigation.widget.dart';
 import 'package:med_track_v2/widgets/custom_app_bar.widget.dart';
-import 'package:med_track_v2/widgets/custom_bottom_navigation.widget.dart';
 import 'package:med_track_v2/widgets/fab/fab.widget.dart';
 import 'package:med_track_v2/widgets/medication_card.widget.dart';
 import 'package:med_track_v2/widgets/progress_card.widget.dart';
@@ -99,8 +100,13 @@ class _DashboardScreenState extends State<DashboardScreen>
 
   @override
   Widget build(BuildContext context) {
-    final medicationService = Provider.of<MedicationService>(context, listen: false);
-    final userPreferencesViewModel = Provider.of<UserPreferencesViewModel>(context);
+    final medicationService = Provider.of<MedicationService>(
+      context,
+      listen: false,
+    );
+    final userPreferencesViewModel = Provider.of<UserPreferencesViewModel>(
+      context,
+    );
 
     return ChangeNotifierProvider(
       create: (_) => DashboardViewModel(medicationService)
@@ -125,9 +131,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                   child: Consumer<DashboardViewModel>(
                     builder: (context, viewModel, child) {
                       if (viewModel.isLoading) {
-                        return const Center(
-                          child: CircularProgressIndicator(),
-                        );
+                        return const Center(child: CircularProgressIndicator());
                       }
 
                       if (viewModel.todaysMedications.isEmpty) {
@@ -178,15 +182,13 @@ class _DashboardScreenState extends State<DashboardScreen>
             Icons.medication_outlined,
             size: 80,
             color: (_isDarkMode ? AppColors.darkText : AppColors.lightText)
-                .withOpacity(0.3),
+                .withValues(alpha: 0.3),
           ),
           const SizedBox(height: 24),
           Text(
             'No medications yet',
             style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-              color: _isDarkMode
-                  ? AppColors.darkHeader
-                  : AppColors.lightHeader,
+              color: _isDarkMode ? AppColors.darkHeader : AppColors.lightHeader,
             ),
           ),
           const SizedBox(height: 8),
@@ -194,7 +196,7 @@ class _DashboardScreenState extends State<DashboardScreen>
             'Tap the + button to add your first medication',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
               color: (_isDarkMode ? AppColors.darkText : AppColors.lightText)
-                  .withOpacity(0.7),
+                  .withValues(alpha: 0.7),
             ),
             textAlign: TextAlign.center,
           ),

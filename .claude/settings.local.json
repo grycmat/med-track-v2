@@ -9,7 +9,8 @@
       "mcp__context7__resolve-library-id",
       "mcp__context7__get-library-docs",
       "Bash(dart run build_runner build:*)",
-      "Bash(dart analyze:*)"
+      "Bash(dart analyze:*)",
+      "WebFetch(domain:api.flutter.dev)"
     ],
     "deny": [],
     "ask": []

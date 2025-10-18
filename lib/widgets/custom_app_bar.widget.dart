@@ -24,47 +24,37 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: (isDark ? AppColors.darkBg : Colors.white).withOpacity(0.8),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
+    return AppBar(
+      elevation: 2,
+      shadowColor: Colors.black.withValues(alpha: 0.05),
+      surfaceTintColor: Colors.transparent,
+      backgroundColor: (isDark ? AppColors.darkBg : Colors.white).withValues(alpha: 0.8),
+      toolbarHeight: 64,
+      leading: Padding(
+        padding: const EdgeInsets.only(left: 16),
+        child: UserAvatar(userName: userName),
       ),
-      child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          child: Row(
-            children: [
-              UserAvatar(userName: userName),
-              const SizedBox(width: 12),
-              Expanded(
-                child: UserGreeting(greeting: greeting, userName: userName),
-              ),
-              if (onThemeToggle != null) ...[
-                ThemeToggleButton(
-                  isDarkMode: isDarkMode,
-                  onTap: onThemeToggle!,
-                ),
-                const SizedBox(width: 8),
-              ],
-              NotificationButton(
-                hasNotification: hasNotification,
-                onTap: onNotificationTap,
-              ),
-            ],
+      leadingWidth: 68,
+      title: UserGreeting(greeting: greeting, userName: userName),
+      titleSpacing: 0,
+      actions: [
+        if (onThemeToggle != null)
+          ThemeToggleButton(
+            isDarkMode: isDarkMode,
+            onTap: onThemeToggle!,
           ),
+        if (onThemeToggle != null) const SizedBox(width: 8),
+        NotificationButton(
+          hasNotification: hasNotification,
+          onTap: onNotificationTap,
         ),
-      ),
+        const SizedBox(width: 16),
+      ],
     );
   }
 
   @override
-  Size get preferredSize => const Size.fromHeight(80);
+  Size get preferredSize => const Size.fromHeight(64);
 }
 
 class UserAvatar extends StatelessWidget {
@@ -140,7 +130,7 @@ class NotificationButton extends StatelessWidget {
           decoration: BoxDecoration(
             color: isDark
                 ? AppColors.darkSecondary
-                : AppColors.lightSecondary.withOpacity(0.5),
+                : AppColors.lightSecondary.withValues(alpha: 0.5),
             shape: BoxShape.circle,
           ),
           child: Stack(
@@ -187,7 +177,7 @@ class ThemeToggleButton extends StatelessWidget {
           decoration: BoxDecoration(
             color: isDark
                 ? AppColors.darkPrimary
-                : AppColors.lightSecondary.withOpacity(0.5),
+                : AppColors.lightSecondary.withValues(alpha: 0.5),
             shape: BoxShape.circle,
           ),
           child: Icon(
@@ -201,6 +191,8 @@ class ThemeToggleButton extends StatelessWidget {
 }
 
 class PulsingDot extends StatefulWidget {
+  const PulsingDot({super.key});
+
   @override
   _PulsingDotState createState() => _PulsingDotState();
 }

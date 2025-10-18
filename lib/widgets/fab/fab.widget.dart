@@ -104,7 +104,7 @@ class _CustomFloatingActionButtonState extends State<CustomFloatingActionButton>
                             (isDark
                                     ? AppColors.darkPrimary
                                     : AppColors.lightPrimary)
-                                .withOpacity(0.6),
+                                .withValues(alpha: 0.6),
                         blurRadius: 16,
                         offset: const Offset(0, 4),
                         spreadRadius: 0,

@@ -85,7 +85,7 @@ class _MedicationCardState extends State<MedicationCard>
                 border: _getBorder(),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
+                    color: Colors.black.withValues(alpha: 0.1),
                     blurRadius: 8,
                     offset: const Offset(0, 2),
                   ),
@@ -164,20 +164,20 @@ class MedicationIcon extends StatelessWidget {
         return _IconConfig(
           icon: Icons.check_circle,
           iconColor: AppColors.success,
-          backgroundColor: AppColors.success.withOpacity(0.1),
+          backgroundColor: AppColors.success.withValues(alpha: 0.1),
         );
       case MedicationStatus.takeNow:
       case MedicationStatus.upcoming:
         return _IconConfig(
           icon: Icons.medication,
           iconColor: AppColors.warning,
-          backgroundColor: AppColors.warning.withOpacity(0.1),
+          backgroundColor: AppColors.warning.withValues(alpha: 0.1),
         );
       case MedicationStatus.missed:
         return _IconConfig(
           icon: Icons.schedule,
           iconColor: AppColors.error,
-          backgroundColor: AppColors.error.withOpacity(0.1),
+          backgroundColor: AppColors.error.withValues(alpha: 0.1),
         );
     }
   }
@@ -370,7 +370,7 @@ class _TakeNowButtonState extends State<TakeNowButton>
                         (isDark
                                 ? AppColors.darkPrimary
                                 : AppColors.lightPrimary)
-                            .withOpacity(0.4),
+                            .withValues(alpha: 0.4),
                     blurRadius: 8,
                     offset: const Offset(0, 4),
                   ),

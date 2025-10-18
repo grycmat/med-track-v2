@@ -53,7 +53,7 @@ class MedicationReviewView extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
-                    color: AppColors.success.withOpacity(0.2),
+                    color: AppColors.success.withValues(alpha: 0.2),
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(
@@ -78,7 +78,7 @@ class MedicationReviewView extends StatelessWidget {
                   'Almost done! Please review the details.',
                   style: theme.textTheme.titleMedium?.copyWith(
                     color: (isDark ? AppColors.darkText : AppColors.lightText)
-                        .withOpacity(0.7),
+                        .withValues(alpha: 0.7),
                   ),
                   textAlign: TextAlign.center,
                 ),
@@ -110,7 +110,7 @@ class MedicationReviewView extends StatelessWidget {
                     hintText: 'Add notes (e.g., take with food)',
                     hintStyle: TextStyle(
                       color: (isDark ? AppColors.darkText : AppColors.lightText)
-                          .withOpacity(0.5),
+                          .withValues(alpha: 0.5),
                     ),
                     filled: true,
                     fillColor: theme.cardColor,
@@ -137,9 +137,8 @@ class MedicationReviewView extends StatelessWidget {
                       showDialog(
                         context: context,
                         barrierDismissible: false,
-                        builder: (context) => const Center(
-                          child: CircularProgressIndicator(),
-                        ),
+                        builder: (context) =>
+                            const Center(child: CircularProgressIndicator()),
                       );
 
                       final success = await viewModel.saveMedication();
@@ -153,7 +152,9 @@ class MedicationReviewView extends StatelessWidget {
                         viewModel.resetForm();
 
                         if (context.mounted) {
-                          Navigator.of(context).popUntil((route) => route.isFirst);
+                          Navigator.of(
+                            context,
+                          ).popUntil((route) => route.isFirst);
                         }
                       } else {
                         if (context.mounted) {

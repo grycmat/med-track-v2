@@ -129,7 +129,7 @@ class AnimatedProgressBar extends StatelessWidget {
       decoration: BoxDecoration(
         color: isDark
             ? AppColors.darkAccent
-            : AppColors.lightSecondary.withOpacity(0.3),
+            : AppColors.lightSecondary.withValues(alpha: 0.3),
         borderRadius: BorderRadius.circular(6),
       ),
       child: AnimatedBuilder(
