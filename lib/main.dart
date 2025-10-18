@@ -6,6 +6,7 @@ import 'package:med_track_v2/screens/welcome_screen.dart';
 import 'package:med_track_v2/services/medication_service.dart';
 import 'package:med_track_v2/services/user_preferences_service.dart';
 import 'package:med_track_v2/theme/app_theme.dart';
+import 'package:med_track_v2/viewmodels/user_preferences_viewmodel.dart';
 import 'package:med_track_v2/viewmodels/welcome_viewmodel.dart';
 import 'package:provider/provider.dart';
 
@@ -14,6 +15,7 @@ void main() async {
 
   final database = AppDatabase();
   final medicationService = MedicationService(database);
+  final userPreferencesService = UserPreferencesService(database);
 
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
@@ -31,17 +33,20 @@ void main() async {
   runApp(MedTrackV2App(
     database: database,
     medicationService: medicationService,
+    userPreferencesService: userPreferencesService,
   ));
 }
 
 class MedTrackV2App extends StatelessWidget {
   final AppDatabase database;
   final MedicationService medicationService;
+  final UserPreferencesService userPreferencesService;
 
   const MedTrackV2App({
     super.key,
     required this.database,
     required this.medicationService,
+    required this.userPreferencesService,
   });
 
   @override
@@ -50,6 +55,11 @@ class MedTrackV2App extends StatelessWidget {
       providers: [
         Provider<AppDatabase>.value(value: database),
         Provider<MedicationService>.value(value: medicationService),
+        Provider<UserPreferencesService>.value(value: userPreferencesService),
+        ChangeNotifierProvider(
+          create: (_) => UserPreferencesViewModel(userPreferencesService)
+            ..loadUsername(),
+        ),
       ],
       child: const AppWrapper(),
     );

@@ -6,6 +6,7 @@ import 'package:med_track_v2/services/medication_service.dart';
 import 'package:med_track_v2/theme/app_colors.dart';
 import 'package:med_track_v2/theme/app_theme.dart';
 import 'package:med_track_v2/viewmodels/dashboard_viewmodel.dart';
+import 'package:med_track_v2/viewmodels/user_preferences_viewmodel.dart';
 import 'package:med_track_v2/widgets/custom_app_bar.widget.dart';
 import 'package:med_track_v2/widgets/custom_bottom_navigation.widget.dart';
 import 'package:med_track_v2/widgets/fab/fab.widget.dart';
@@ -99,6 +100,7 @@ class _DashboardScreenState extends State<DashboardScreen>
   @override
   Widget build(BuildContext context) {
     final medicationService = Provider.of<MedicationService>(context, listen: false);
+    final userPreferencesViewModel = Provider.of<UserPreferencesViewModel>(context);
 
     return ChangeNotifierProvider(
       create: (_) => DashboardViewModel(medicationService)
@@ -113,7 +115,7 @@ class _DashboardScreenState extends State<DashboardScreen>
               children: [
                 CustomAppBar(
                   greeting: _getGreeting(),
-                  userName: 'Alex',
+                  userName: userPreferencesViewModel.displayName,
                   hasNotification: true,
                   onNotificationTap: _onNotificationTap,
                   onThemeToggle: _toggleTheme,

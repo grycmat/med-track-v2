@@ -4,6 +4,7 @@ import 'package:med_track_v2/screens/add_medication/medication_frequency.view.da
 import 'package:med_track_v2/screens/add_medication/medication_review.view.dart';
 import 'package:med_track_v2/services/medication_service.dart';
 import 'package:med_track_v2/viewmodels/add_medication_viewmodel.dart';
+import 'package:med_track_v2/viewmodels/user_preferences_viewmodel.dart';
 import 'package:med_track_v2/widgets/custom_app_bar.widget.dart';
 import 'package:med_track_v2/widgets/step_progress_bar.widget.dart';
 import 'package:provider/provider.dart';
@@ -48,13 +49,14 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
   @override
   Widget build(BuildContext context) {
     final medicationService = Provider.of<MedicationService>(context, listen: false);
+    final userPreferencesViewModel = Provider.of<UserPreferencesViewModel>(context, listen: false);
 
     return ChangeNotifierProvider(
       create: (_) => AddMedicationViewModel(medicationService),
       child: Scaffold(
-        appBar: const CustomAppBar(
+        appBar: CustomAppBar(
           greeting: 'Add Medication',
-          userName: 'User Name',
+          userName: userPreferencesViewModel.displayName,
         ),
         body: Column(
           children: [
