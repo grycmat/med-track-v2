@@ -7,15 +7,30 @@ import 'package:med_track_v2/viewmodels/add_medication_viewmodel.dart';
 import 'package:med_track_v2/database/tables/medications_table.dart';
 import 'package:med_track_v2/database/tables/medication_times_table.dart';
 import 'package:med_track_v2/database/tables/medication_logs_table.dart';
+import 'package:med_track_v2/database/tables/user_preferences_table.dart';
 
 part 'app_database.g.dart';
 
-@DriftDatabase(tables: [Medications, MedicationTimes, MedicationLogs])
+@DriftDatabase(tables: [Medications, MedicationTimes, MedicationLogs, UserPreferences])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
+
+  @override
+  MigrationStrategy get migration {
+    return MigrationStrategy(
+      onCreate: (Migrator m) async {
+        await m.createAll();
+      },
+      onUpgrade: (Migrator m, int from, int to) async {
+        if (from < 2) {
+          await m.createTable(userPreferences);
+        }
+      },
+    );
+  }
 
   static LazyDatabase _openConnection() {
     return LazyDatabase(() async {
@@ -158,5 +173,30 @@ class AppDatabase extends _$AppDatabase {
               tbl.logDate.isBiggerOrEqualValue(startOfDay) &
               tbl.logDate.isSmallerThanValue(endOfDay)))
         .watch();
+  }
+
+  Future<List<UserPreference>> getAllUserPreferences() async {
+    return select(userPreferences).get();
+  }
+
+  Future<UserPreference?> getUserPreference() async {
+    final results = await select(userPreferences).get();
+    return results.isNotEmpty ? results.first : null;
+  }
+
+  Future<int> insertUserPreferences(UserPreferencesCompanion preferences) async {
+    return into(userPreferences).insert(preferences);
+  }
+
+  Future<bool> updateUserPreferences(UserPreferencesCompanion preferences) async {
+    return update(userPreferences).replace(preferences);
+  }
+
+  Future<int> deleteUserPreferences(int id) async {
+    return (delete(userPreferences)..where((tbl) => tbl.id.equals(id))).go();
+  }
+
+  Stream<UserPreference?> watchUserPreferences() {
+    return select(userPreferences).watchSingleOrNull();
   }
 }

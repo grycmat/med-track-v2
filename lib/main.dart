@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:med_track_v2/database/app_database.dart';
 import 'package:med_track_v2/screens/dashboard.screen.dart';
+import 'package:med_track_v2/screens/welcome_screen.dart';
 import 'package:med_track_v2/services/medication_service.dart';
+import 'package:med_track_v2/services/user_preferences_service.dart';
 import 'package:med_track_v2/theme/app_theme.dart';
+import 'package:med_track_v2/viewmodels/welcome_viewmodel.dart';
 import 'package:provider/provider.dart';
 
 void main() async {
@@ -25,19 +28,30 @@ void main() async {
     DeviceOrientation.portraitDown,
   ]);
 
-  runApp(MedTrackV2App(medicationService: medicationService));
+  runApp(MedTrackV2App(
+    database: database,
+    medicationService: medicationService,
+  ));
 }
 
 class MedTrackV2App extends StatelessWidget {
+  final AppDatabase database;
   final MedicationService medicationService;
 
-  const MedTrackV2App({super.key, required this.medicationService});
+  const MedTrackV2App({
+    super.key,
+    required this.database,
+    required this.medicationService,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Provider<MedicationService>.value(
-      value: medicationService,
-      child: AppWrapper(),
+    return MultiProvider(
+      providers: [
+        Provider<AppDatabase>.value(value: database),
+        Provider<MedicationService>.value(value: medicationService),
+      ],
+      child: const AppWrapper(),
     );
   }
 }
@@ -51,6 +65,46 @@ class AppWrapper extends StatefulWidget {
 
 class _AppWrapperState extends State<AppWrapper> {
   ThemeMode _themeMode = ThemeMode.system;
+  bool _isCheckingOnboarding = true;
+  bool _hasCompletedOnboarding = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkOnboardingStatus();
+  }
+
+  Future<void> _checkOnboardingStatus() async {
+    final database = context.read<AppDatabase>();
+    final userPreferencesService = UserPreferencesService(database);
+
+    try {
+      final hasCompleted = await userPreferencesService.hasCompletedOnboarding();
+      final themeMode = await userPreferencesService.getThemeMode();
+
+      setState(() {
+        _hasCompletedOnboarding = hasCompleted;
+        _themeMode = _parseThemeMode(themeMode);
+        _isCheckingOnboarding = false;
+      });
+    } catch (e) {
+      setState(() {
+        _hasCompletedOnboarding = false;
+        _isCheckingOnboarding = false;
+      });
+    }
+  }
+
+  ThemeMode _parseThemeMode(String themeModeString) {
+    switch (themeModeString) {
+      case 'light':
+        return ThemeMode.light;
+      case 'dark':
+        return ThemeMode.dark;
+      default:
+        return ThemeMode.system;
+    }
+  }
 
   void _updateThemeMode(ThemeMode themeMode) {
     setState(() {
@@ -58,28 +112,64 @@ class _AppWrapperState extends State<AppWrapper> {
     });
   }
 
+  void _handleOnboardingComplete() {
+    setState(() {
+      _hasCompletedOnboarding = true;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
+    if (_isCheckingOnboarding) {
+      return MaterialApp(
+        debugShowCheckedModeBanner: false,
+        theme: AppTheme.lightTheme,
+        darkTheme: AppTheme.darkTheme,
+        themeMode: _themeMode,
+        home: const Scaffold(
+          body: Center(
+            child: CircularProgressIndicator(),
+          ),
+        ),
+      );
+    }
+
     return MaterialApp(
       title: 'Medication Tracker',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
       themeMode: _themeMode,
-      home: ThemeModeProvider(
-        onThemeChanged: _updateThemeMode,
-        child: DashboardScreen(),
-      ),
+      home: _hasCompletedOnboarding
+          ? ThemeModeProvider(
+              onThemeChanged: _updateThemeMode,
+              child: const DashboardScreen(),
+            )
+          : _buildWelcomeScreen(),
       builder: (context, child) {
+        final mediaQuery = MediaQuery.of(context);
+        final currentScale = mediaQuery.textScaler.scale(1.0);
+        final clampedScale = currentScale.clamp(0.8, 1.2);
+
         return MediaQuery(
-          data: MediaQuery.of(context).copyWith(
-            textScaler: TextScaler.linear(
-              MediaQuery.of(context).textScaleFactor.clamp(0.8, 1.2),
-            ),
+          data: mediaQuery.copyWith(
+            textScaler: TextScaler.linear(clampedScale),
           ),
           child: child!,
         );
       },
+    );
+  }
+
+  Widget _buildWelcomeScreen() {
+    final database = context.read<AppDatabase>();
+    final userPreferencesService = UserPreferencesService(database);
+
+    return ChangeNotifierProvider(
+      create: (_) => WelcomeViewModel(userPreferencesService),
+      child: WelcomeScreen(
+        onComplete: _handleOnboardingComplete,
+      ),
     );
   }
 }
