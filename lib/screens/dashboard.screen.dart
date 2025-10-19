@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:med_track_v2/models/medication.dart';
 import 'package:med_track_v2/screens/add_medication/add_medication.screen.dart';
+import 'package:med_track_v2/screens/settings/settings.screen.dart';
 import 'package:med_track_v2/services/medication_service.dart';
 import 'package:med_track_v2/theme/app_colors.dart';
-import 'package:med_track_v2/theme/app_theme.dart';
 import 'package:med_track_v2/viewmodels/dashboard_viewmodel.dart';
 import 'package:med_track_v2/viewmodels/user_preferences_viewmodel.dart';
 import 'package:med_track_v2/widgets/bottom_navigation/bottom_nav_item.dart';
@@ -26,7 +26,6 @@ class DashboardScreen extends StatefulWidget {
 class _DashboardScreenState extends State<DashboardScreen>
     with TickerProviderStateMixin {
   int _currentNavIndex = 0;
-  bool _isDarkMode = false;
   late AnimationController _fadeController;
   late Animation<double> _fadeAnimation;
 
@@ -56,26 +55,51 @@ class _DashboardScreenState extends State<DashboardScreen>
     super.dispose();
   }
 
-  void _toggleTheme() {
-    setState(() {
-      _isDarkMode = !_isDarkMode;
-    });
-    HapticFeedback.lightImpact();
-  }
-
   void _onNavTap(int index) {
+    HapticFeedback.selectionClick();
+
+    if (index == 0) {
+      return;
+    }
+
+    if (index == 3) {
+      Navigator.of(context).push(
+        MaterialPageRoute(builder: (context) => const SettingsScreen()),
+      );
+      return;
+    }
+
     setState(() {
       _currentNavIndex = index;
     });
-    HapticFeedback.selectionClick();
+
+    final routes = [
+      null,
+      '/schedule',
+      '/history',
+      '/settings',
+    ];
+
+    if (routes[index] != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${_navItems[index].label} - Coming soon'),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+      );
+    }
   }
 
   void _onNotificationTap() {
     HapticFeedback.lightImpact();
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: const Text('You have upcoming medications'),
-        backgroundColor: _isDarkMode
+        backgroundColor: isDark
             ? AppColors.darkPrimary
             : AppColors.lightPrimary,
         behavior: SnackBarBehavior.floating,
@@ -112,9 +136,7 @@ class _DashboardScreenState extends State<DashboardScreen>
       create: (_) => DashboardViewModel(medicationService)
         ..loadDashboardData()
         ..startWatchingMedications(),
-      child: Theme(
-        data: _isDarkMode ? AppTheme.darkTheme : AppTheme.lightTheme,
-        child: Scaffold(
+      child: Scaffold(
           body: FadeTransition(
             opacity: _fadeAnimation,
             child: Column(
@@ -124,8 +146,6 @@ class _DashboardScreenState extends State<DashboardScreen>
                   userName: userPreferencesViewModel.displayName,
                   hasNotification: true,
                   onNotificationTap: _onNotificationTap,
-                  onThemeToggle: _toggleTheme,
-                  isDarkMode: _isDarkMode,
                 ),
                 Expanded(
                   child: Consumer<DashboardViewModel>(
@@ -169,11 +189,13 @@ class _DashboardScreenState extends State<DashboardScreen>
             items: _navItems,
           ),
         ),
-      ),
     );
   }
 
   Widget _buildEmptyState() {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -181,21 +203,21 @@ class _DashboardScreenState extends State<DashboardScreen>
           Icon(
             Icons.medication_outlined,
             size: 80,
-            color: (_isDarkMode ? AppColors.darkText : AppColors.lightText)
+            color: (isDark ? AppColors.darkText : AppColors.lightText)
                 .withValues(alpha: 0.3),
           ),
           const SizedBox(height: 24),
           Text(
             'No medications yet',
-            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-              color: _isDarkMode ? AppColors.darkHeader : AppColors.lightHeader,
+            style: theme.textTheme.headlineMedium?.copyWith(
+              color: isDark ? AppColors.darkHeader : AppColors.lightHeader,
             ),
           ),
           const SizedBox(height: 8),
           Text(
             'Tap the + button to add your first medication',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: (_isDarkMode ? AppColors.darkText : AppColors.lightText)
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: (isDark ? AppColors.darkText : AppColors.lightText)
                   .withValues(alpha: 0.7),
             ),
             textAlign: TextAlign.center,

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:med_track_v2/screens/dashboard.screen.dart';
+import 'package:med_track_v2/screens/settings/settings.screen.dart';
 import 'package:med_track_v2/widgets/splash_screen.widget.dart';
 
 class AppRoutes {
@@ -34,8 +35,7 @@ class AppRoutes {
         );
       case appSettings:
         return MaterialPageRoute(
-          builder: (_) =>
-              const Scaffold(body: Center(child: Text('Settings Screen'))),
+          builder: (_) => const SettingsScreen(),
         );
       default:
         return MaterialPageRoute(

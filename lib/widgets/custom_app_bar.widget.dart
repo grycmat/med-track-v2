@@ -38,12 +38,6 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
       title: UserGreeting(greeting: greeting, userName: userName),
       titleSpacing: 0,
       actions: [
-        if (onThemeToggle != null)
-          ThemeToggleButton(
-            isDarkMode: isDarkMode,
-            onTap: onThemeToggle!,
-          ),
-        if (onThemeToggle != null) const SizedBox(width: 8),
         NotificationButton(
           hasNotification: hasNotification,
           onTap: onNotificationTap,
