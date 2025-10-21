@@ -13,6 +13,7 @@ import 'package:med_track_v2/widgets/custom_app_bar.widget.dart';
 import 'package:med_track_v2/widgets/fab/fab.widget.dart';
 import 'package:med_track_v2/widgets/medication_card.widget.dart';
 import 'package:med_track_v2/widgets/progress_card.widget.dart';
+import 'package:med_track_v2/widgets/sliver_dashboard_app_bar.widget.dart';
 import 'package:med_track_v2/widgets/stats_card.widget.dart';
 import 'package:provider/provider.dart';
 
@@ -137,58 +138,64 @@ class _DashboardScreenState extends State<DashboardScreen>
         ..loadDashboardData()
         ..startWatchingMedications(),
       child: Scaffold(
-          body: FadeTransition(
-            opacity: _fadeAnimation,
-            child: Column(
-              children: [
-                CustomAppBar(
-                  greeting: _getGreeting(),
-                  userName: userPreferencesViewModel.displayName,
-                  hasNotification: true,
-                  onNotificationTap: _onNotificationTap,
-                ),
-                Expanded(
-                  child: Consumer<DashboardViewModel>(
-                    builder: (context, viewModel, child) {
-                      if (viewModel.isLoading) {
-                        return const Center(child: CircularProgressIndicator());
-                      }
+        body: FadeTransition(
+          opacity: _fadeAnimation,
+          child: Consumer<DashboardViewModel>(
+            builder: (context, viewModel, child) {
+              if (viewModel.isLoading) {
+                return const Center(child: CircularProgressIndicator());
+              }
 
-                      if (viewModel.todaysMedications.isEmpty) {
-                        return _buildEmptyState();
-                      }
+              if (viewModel.todaysMedications.isEmpty) {
+                return Column(
+                  children: [
+                    CustomAppBar(
+                      greeting: _getGreeting(),
+                      userName: userPreferencesViewModel.displayName,
+                      hasNotification: true,
+                      onNotificationTap: _onNotificationTap,
+                    ),
+                    Expanded(child: _buildEmptyState()),
+                  ],
+                );
+              }
 
-                      return SingleChildScrollView(
-                        padding: const EdgeInsets.all(24),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            _buildProgressCard(viewModel),
-                            const SizedBox(height: 24),
-                            _buildNextDoseSection(viewModel),
-                            const SizedBox(height: 24),
-                            _buildTodayScheduleSection(viewModel),
-                            const SizedBox(height: 24),
-                            QuickStatsSection(stats: viewModel.stats),
-                            const SizedBox(height: 100),
-                          ],
-                        ),
-                      );
-                    },
+              return CustomScrollView(
+                slivers: [
+                  SliverDashboardAppBar(
+                    greeting: _getGreeting(),
+                    userName: userPreferencesViewModel.displayName,
+                    stats: viewModel.stats,
+                    hasNotification: true,
+                    onNotificationTap: _onNotificationTap,
                   ),
-                ),
-              ],
-            ),
-          ),
-          floatingActionButton: CustomFloatingActionButton(
-            onPressed: _onAddMedication,
-          ),
-          bottomNavigationBar: CustomBottomNavigation(
-            currentIndex: _currentNavIndex,
-            onTap: _onNavTap,
-            items: _navItems,
+                  SliverPadding(
+                    padding: const EdgeInsets.all(24),
+                    sliver: SliverList(
+                      delegate: SliverChildListDelegate([
+                        _buildProgressCard(viewModel),
+                        const SizedBox(height: 24),
+                        _buildNextDoseSection(viewModel),
+                        const SizedBox(height: 24),
+                        _buildTodayScheduleSection(viewModel),
+                        const SizedBox(height: 100),
+                      ]),
+                    ),
+                  ),
+                ],
+              );
+            },
           ),
         ),
+        floatingActionButton: CustomFloatingActionButton(
+          onPressed: _onAddMedication,
+        ),
+        bottomNavigationBar: CustomBottomNavigation(
+          currentIndex: _currentNavIndex,
+          onTap: _onNavTap,
+          items: _navItems,
+        ),
+      ),
     );
   }
 

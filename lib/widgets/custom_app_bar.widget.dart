@@ -28,7 +28,9 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
       elevation: 2,
       shadowColor: Colors.black.withValues(alpha: 0.05),
       surfaceTintColor: Colors.transparent,
-      backgroundColor: (isDark ? AppColors.darkBg : Colors.white).withValues(alpha: 0.8),
+      backgroundColor: (isDark ? AppColors.darkBg : Colors.white).withValues(
+        alpha: 0.8,
+      ),
       toolbarHeight: 64,
       leading: Padding(
         padding: const EdgeInsets.only(left: 16),
