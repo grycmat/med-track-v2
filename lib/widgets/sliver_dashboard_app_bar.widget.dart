@@ -51,18 +51,6 @@ class SliverDashboardAppBar extends StatelessWidget {
       ],
     );
   }
-
-  double _calculateExpandRatio(BoxConstraints constraints) {
-    const expandedHeight = 300.0;
-    const collapsedHeight = kToolbarHeight;
-    final currentHeight = constraints.maxHeight;
-
-    if (currentHeight <= collapsedHeight) return 0.0;
-    if (currentHeight >= expandedHeight) return 1.0;
-
-    return (currentHeight - collapsedHeight) /
-        (expandedHeight - collapsedHeight);
-  }
 }
 
 class ExpandableAppBarContent extends StatelessWidget {
@@ -100,17 +88,6 @@ class ExpandableAppBarContent extends StatelessWidget {
     );
   }
 
-  LinearGradient _buildBackgroundGradient(bool isDark, double ratio) {
-    final baseColor = isDark ? AppColors.darkBg : Colors.white;
-    final accentColor = isDark ? AppColors.darkPrimary : AppColors.lightPrimary;
-
-    return LinearGradient(
-      begin: Alignment.topLeft,
-      end: Alignment.bottomRight,
-      colors: [baseColor, Color.lerp(baseColor, accentColor, ratio * 0.15)!],
-    );
-  }
-
   Widget _buildUserSection(ThemeData theme, bool isDark) {
     return Row(
       children: [
@@ -141,18 +118,7 @@ class ExpandableAppBarContent extends StatelessWidget {
   Widget _buildStatsSection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Quick Stats',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-            color: Colors.white.withValues(alpha: 0.9),
-          ),
-        ),
-
-        CompactStatsGrid(stats: stats, shouldAnimate: false),
-      ],
+      children: [CompactStatsGrid(stats: stats, shouldAnimate: false)],
     );
   }
 }
@@ -174,7 +140,7 @@ class CompactStatsGrid extends StatelessWidget {
         return Expanded(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 4),
-            child: CompactStatCard(stat: stat, shouldAnimate: shouldAnimate),
+            child: CompactStatCard(stat: stat, shouldAnimate: true),
           ),
         );
       }).toList(),
@@ -196,157 +162,66 @@ class CompactStatCard extends StatefulWidget {
   State<CompactStatCard> createState() => _CompactStatCardState();
 }
 
-class _CompactStatCardState extends State<CompactStatCard>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _scaleAnimation;
-  late Animation<double> _opacityAnimation;
-  bool _hasAnimated = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      duration: const Duration(milliseconds: 600),
-      vsync: this,
-    );
-    _scaleAnimation = Tween<double>(
-      begin: 0.8,
-      end: 1.0,
-    ).animate(CurvedAnimation(parent: _controller, curve: Curves.elasticOut));
-    _opacityAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _controller,
-        curve: const Interval(0.0, 0.6, curve: Curves.easeOut),
-      ),
-    );
-  }
-
-  @override
-  void didUpdateWidget(CompactStatCard oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (widget.shouldAnimate && !_hasAnimated) {
-      Future.delayed(Duration(milliseconds: widget.stat.animationDelay), () {
-        if (mounted) {
-          _controller.forward();
-          _hasAnimated = true;
-        }
-      });
-    } else if (!widget.shouldAnimate && _hasAnimated) {
-      _controller.reverse();
-      _hasAnimated = false;
-    }
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
+class _CompactStatCardState extends State<CompactStatCard> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    return AnimatedBuilder(
-      animation: _controller,
-      builder: (context, child) {
-        return Transform.scale(
-          scale: _scaleAnimation.value,
-          child: Opacity(
-            opacity: _opacityAnimation.value,
-            child: Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: (isDark ? AppColors.darkSecondary : Colors.white)
-                    .withValues(alpha: 0.3),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.1),
-                  width: 1,
-                ),
-              ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(widget.stat.icon, color: widget.stat.color, size: 28),
-                  const SizedBox(height: 8),
-                  AnimatedCompactStatValue(
-                    value: widget.stat.value,
-                    animation: _controller,
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    widget.stat.label,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      fontSize: 11,
-                      color: (isDark ? AppColors.darkText : AppColors.lightText)
-                          .withValues(alpha: 0.7),
-                    ),
-                    textAlign: TextAlign.center,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: (isDark ? AppColors.darkSecondary : Colors.white).withValues(
+          alpha: 0.3,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.1),
+          width: 1,
+        ),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(widget.stat.icon, color: widget.stat.color, size: 28),
+          const SizedBox(height: 8),
+          AnimatedCompactStatValue(value: widget.stat.value),
+          const SizedBox(height: 2),
+          Text(
+            widget.stat.label,
+            style: theme.textTheme.bodySmall?.copyWith(
+              fontSize: 11,
+              color: (isDark ? AppColors.darkText : AppColors.lightText)
+                  .withValues(alpha: 0.7),
             ),
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
-        );
-      },
+        ],
+      ),
     );
   }
 }
 
 class AnimatedCompactStatValue extends StatelessWidget {
   final String value;
-  final Animation<double> animation;
 
-  const AnimatedCompactStatValue({
-    super.key,
-    required this.value,
-    required this.animation,
-  });
+  const AnimatedCompactStatValue({super.key, required this.value});
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    return AnimatedBuilder(
-      animation: animation,
-      builder: (context, child) {
-        final numericValue = _extractNumericValue(value);
-        final displayValue = numericValue != null
-            ? _formatAnimatedValue(numericValue * animation.value)
-            : value;
-
-        return Text(
-          displayValue,
-          style: theme.textTheme.headlineMedium?.copyWith(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-            color: isDark ? Colors.white : AppColors.lightHeader,
-          ),
-        );
-      },
+    return Text(
+      value,
+      style: theme.textTheme.headlineMedium?.copyWith(
+        fontSize: 16,
+        fontWeight: FontWeight.bold,
+        color: isDark ? Colors.white : AppColors.lightHeader,
+      ),
     );
-  }
-
-  double? _extractNumericValue(String value) {
-    final regex = RegExp(r'\d+');
-    final match = regex.firstMatch(value);
-    if (match != null) {
-      return double.tryParse(match.group(0)!);
-    }
-    return null;
-  }
-
-  String _formatAnimatedValue(double animatedValue) {
-    if (value.contains('%')) {
-      return '${animatedValue.round()}%';
-    }
-    return animatedValue.round().toString();
   }
 }
 
