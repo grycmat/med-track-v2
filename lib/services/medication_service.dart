@@ -115,6 +115,10 @@ class MedicationService {
     });
   }
 
+  Stream<List<Medication>> watchAllMedications() {
+    return _database.watchActiveMedications();
+  }
+
   Future<void> markMedicationTaken(
     int medicationId,
     int timeId,
@@ -187,6 +191,16 @@ class MedicationService {
 
   Future<void> deleteMedication(int medicationId) async {
     await _database.softDeleteMedication(medicationId);
+  }
+
+  Future<void> toggleMedicationActive(int medicationId) async {
+    final medication = await _database.getMedicationById(medicationId);
+    await _database.updateMedication(
+      MedicationsCompanion(
+        id: Value(medicationId),
+        isActive: Value(!medication.isActive),
+      ),
+    );
   }
 
   Future<List<StatItem>> getDashboardStats() async {
