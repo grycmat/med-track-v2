@@ -1,5 +1,5 @@
+import 'package:dynamic_color/dynamic_color.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:med_track_v2/database/app_database.dart';
 import 'package:med_track_v2/screens/dashboard.screen.dart';
 import 'package:med_track_v2/screens/welcome_screen.dart';
@@ -17,24 +17,13 @@ void main() async {
   final medicationService = MedicationService(database);
   final userPreferencesService = UserPreferencesService(database);
 
-  SystemChrome.setSystemUIOverlayStyle(
-    const SystemUiOverlayStyle(
-      statusBarColor: Colors.transparent,
-      statusBarIconBrightness: Brightness.dark,
-      statusBarBrightness: Brightness.light,
+  runApp(
+    MedTrackV2App(
+      database: database,
+      medicationService: medicationService,
+      userPreferencesService: userPreferencesService,
     ),
   );
-
-  await SystemChrome.setPreferredOrientations([
-    DeviceOrientation.portraitUp,
-    DeviceOrientation.portraitDown,
-  ]);
-
-  runApp(MedTrackV2App(
-    database: database,
-    medicationService: medicationService,
-    userPreferencesService: userPreferencesService,
-  ));
 }
 
 class MedTrackV2App extends StatelessWidget {
@@ -57,8 +46,8 @@ class MedTrackV2App extends StatelessWidget {
         Provider<MedicationService>.value(value: medicationService),
         Provider<UserPreferencesService>.value(value: userPreferencesService),
         ChangeNotifierProvider(
-          create: (_) => UserPreferencesViewModel(userPreferencesService)
-            ..loadUsername(),
+          create: (_) =>
+              UserPreferencesViewModel(userPreferencesService)..loadUsername(),
         ),
       ],
       child: const AppWrapper(),
@@ -89,7 +78,8 @@ class _AppWrapperState extends State<AppWrapper> {
     final userPreferencesService = UserPreferencesService(database);
 
     try {
-      final hasCompleted = await userPreferencesService.hasCompletedOnboarding();
+      final hasCompleted = await userPreferencesService
+          .hasCompletedOnboarding();
       final themeMode = await userPreferencesService.getThemeMode();
 
       setState(() {
@@ -136,36 +126,40 @@ class _AppWrapperState extends State<AppWrapper> {
         theme: AppTheme.lightTheme,
         darkTheme: AppTheme.darkTheme,
         themeMode: _themeMode,
-        home: const Scaffold(
-          body: Center(
-            child: CircularProgressIndicator(),
-          ),
-        ),
+        home: const Scaffold(body: Center(child: CircularProgressIndicator())),
       );
     }
 
-    return MaterialApp(
-      title: 'Medication Tracker',
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.lightTheme,
-      darkTheme: AppTheme.darkTheme,
-      themeMode: _themeMode,
-      home: _hasCompletedOnboarding
-          ? ThemeModeProvider(
-              onThemeChanged: _updateThemeMode,
-              child: const DashboardScreen(),
-            )
-          : _buildWelcomeScreen(),
-      builder: (context, child) {
-        final mediaQuery = MediaQuery.of(context);
-        final currentScale = mediaQuery.textScaler.scale(1.0);
-        final clampedScale = currentScale.clamp(0.8, 1.2);
+    return DynamicColorBuilder(
+      builder: (ColorScheme? lightDynamic, ColorScheme? darkDynamic) {
+        ColorScheme lightColorScheme =
+            lightDynamic ?? AppTheme.lightColorScheme;
+        ColorScheme darkColorScheme = darkDynamic ?? AppTheme.darkColorScheme;
 
-        return MediaQuery(
-          data: mediaQuery.copyWith(
-            textScaler: TextScaler.linear(clampedScale),
-          ),
-          child: child!,
+        return MaterialApp(
+          title: 'Medication Tracker',
+          debugShowCheckedModeBanner: false,
+          theme: AppTheme.lightTheme.copyWith(colorScheme: lightColorScheme),
+          darkTheme: AppTheme.darkTheme.copyWith(colorScheme: darkColorScheme),
+          themeMode: _themeMode,
+          home: _hasCompletedOnboarding
+              ? ThemeModeProvider(
+                  onThemeChanged: _updateThemeMode,
+                  child: const DashboardScreen(),
+                )
+              : _buildWelcomeScreen(),
+          builder: (context, child) {
+            final mediaQuery = MediaQuery.of(context);
+            final currentScale = mediaQuery.textScaler.scale(1.0);
+            final clampedScale = currentScale.clamp(0.8, 1.2);
+
+            return MediaQuery(
+              data: mediaQuery.copyWith(
+                textScaler: TextScaler.linear(clampedScale),
+              ),
+              child: child!,
+            );
+          },
         );
       },
     );
@@ -177,9 +171,7 @@ class _AppWrapperState extends State<AppWrapper> {
 
     return ChangeNotifierProvider(
       create: (_) => WelcomeViewModel(userPreferencesService),
-      child: WelcomeScreen(
-        onComplete: _handleOnboardingComplete,
-      ),
+      child: WelcomeScreen(onComplete: _handleOnboardingComplete),
     );
   }
 }

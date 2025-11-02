@@ -3,20 +3,22 @@ import 'package:flutter/material.dart';
 import 'app_colors.dart';
 
 class AppTheme {
+  static ColorScheme lightColorScheme = ColorScheme.light(
+    primary: AppColors.lightHeader,
+    secondary: AppColors.lightPrimary,
+    surface: Colors.white,
+    background: AppColors.lightBg,
+    onPrimary: Colors.white,
+    onSecondary: AppColors.lightHeader,
+    onSurface: AppColors.lightText,
+    onBackground: AppColors.lightText,
+  );
+
   static ThemeData lightTheme = ThemeData(
     useMaterial3: true,
     fontFamily: 'Manrope',
     scaffoldBackgroundColor: AppColors.lightBg,
-    colorScheme: const ColorScheme.light(
-      primary: AppColors.lightHeader,
-      secondary: AppColors.lightPrimary,
-      surface: Colors.white,
-      background: AppColors.lightBg,
-      onPrimary: Colors.white,
-      onSecondary: AppColors.lightHeader,
-      onSurface: AppColors.lightText,
-      onBackground: AppColors.lightText,
-    ),
+    colorScheme: lightColorScheme,
     textTheme: _textTheme(false),
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(
@@ -30,22 +32,29 @@ class AppTheme {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       color: Colors.white,
     ),
+    pageTransitionsTheme: const PageTransitionsTheme(
+      builders: {
+        TargetPlatform.android: PredictiveBackPageTransitionsBuilder(),
+      },
+    ),
+  );
+
+  static ColorScheme darkColorScheme = ColorScheme.dark(
+    primary: AppColors.darkHeader,
+    secondary: AppColors.darkPrimary,
+    surface: AppColors.darkSecondary,
+    background: AppColors.darkBg,
+    onPrimary: AppColors.darkBg,
+    onSecondary: AppColors.darkHeader,
+    onSurface: AppColors.darkText,
+    onBackground: AppColors.darkText,
   );
 
   static ThemeData darkTheme = ThemeData(
     useMaterial3: true,
     fontFamily: 'Manrope',
     scaffoldBackgroundColor: AppColors.darkBg,
-    colorScheme: const ColorScheme.dark(
-      primary: AppColors.darkHeader,
-      secondary: AppColors.darkPrimary,
-      surface: AppColors.darkSecondary,
-      background: AppColors.darkBg,
-      onPrimary: AppColors.darkBg,
-      onSecondary: AppColors.darkHeader,
-      onSurface: AppColors.darkText,
-      onBackground: AppColors.darkText,
-    ),
+    colorScheme: darkColorScheme,
     textTheme: _textTheme(true),
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(
@@ -58,6 +67,11 @@ class AppTheme {
       shadowColor: Colors.black.withValues(alpha: 0.2),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       color: AppColors.darkSecondary,
+    ),
+    pageTransitionsTheme: const PageTransitionsTheme(
+      builders: {
+        TargetPlatform.android: PredictiveBackPageTransitionsBuilder(),
+      },
     ),
   );
 

@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:med_track_v2/database/app_database.dart';
 import 'package:med_track_v2/services/medication_service.dart';
@@ -106,9 +107,9 @@ class MedicationsListViewModel extends ChangeNotifier {
     }
   }
 
-  Future<void> deleteMedication(Medication medication) async {
+  Future<void> archiveMedication(Medication medication) async {
     try {
-      await _medicationService.deleteMedication(medication.id);
+      await _medicationService.archiveMedication(medication.id);
       // The stream will automatically update the list
     } catch (e) {
       _setError('Failed to delete medication: $e');
@@ -140,8 +141,4 @@ class MedicationsListViewModel extends ChangeNotifier {
   }
 }
 
-enum MedicationFilter {
-  all,
-  active,
-  inactive,
-}
+enum MedicationFilter { all, active, inactive }

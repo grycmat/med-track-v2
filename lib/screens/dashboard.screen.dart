@@ -7,10 +7,10 @@ import 'package:med_track_v2/services/medication_service.dart';
 import 'package:med_track_v2/theme/app_colors.dart';
 import 'package:med_track_v2/viewmodels/dashboard_viewmodel.dart';
 import 'package:med_track_v2/viewmodels/user_preferences_viewmodel.dart';
+import 'package:med_track_v2/widgets/add_medication_fab/add_medication_fab.widget.dart';
 import 'package:med_track_v2/widgets/bottom_navigation/bottom_nav_item.dart';
 import 'package:med_track_v2/widgets/bottom_navigation/custom_bottom_navigation.widget.dart';
 import 'package:med_track_v2/widgets/custom_app_bar.widget.dart';
-import 'package:med_track_v2/widgets/fab/fab.widget.dart';
 import 'package:med_track_v2/widgets/medication_card.widget.dart';
 import 'package:med_track_v2/widgets/progress_card.widget.dart';
 import 'package:med_track_v2/widgets/sliver_dashboard_app_bar.widget.dart';
@@ -64,9 +64,9 @@ class _DashboardScreenState extends State<DashboardScreen>
     }
 
     if (index == 3) {
-      Navigator.of(context).push(
-        MaterialPageRoute(builder: (context) => const SettingsScreen()),
-      );
+      Navigator.of(
+        context,
+      ).push(MaterialPageRoute(builder: (context) => const SettingsScreen()));
       return;
     }
 
@@ -74,19 +74,16 @@ class _DashboardScreenState extends State<DashboardScreen>
       _currentNavIndex = index;
     });
 
-    final routes = [
-      null,
-      '/schedule',
-      '/history',
-      '/settings',
-    ];
+    final routes = [null, '/schedule', '/history', '/settings'];
 
     if (routes[index] != null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('${_navItems[index].label} - Coming soon'),
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
         ),
       );
     }
@@ -175,9 +172,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                       delegate: SliverChildListDelegate([
                         _buildProgressCard(viewModel),
                         const SizedBox(height: 24),
-                        _buildNextDoseSection(viewModel),
-                        const SizedBox(height: 24),
-                        _buildTodayScheduleSection(viewModel),
+                        _buildTodaysMedicinesSection(viewModel),
                         const SizedBox(height: 100),
                       ]),
                     ),
@@ -187,9 +182,7 @@ class _DashboardScreenState extends State<DashboardScreen>
             },
           ),
         ),
-        floatingActionButton: CustomFloatingActionButton(
-          onPressed: _onAddMedication,
-        ),
+        floatingActionButton: AddMedicationFab(onPressed: _onAddMedication),
         bottomNavigationBar: CustomBottomNavigation(
           currentIndex: _currentNavIndex,
           onTap: _onNavTap,
@@ -248,68 +241,38 @@ class _DashboardScreenState extends State<DashboardScreen>
     );
   }
 
-  Widget _buildNextDoseSection(DashboardViewModel viewModel) {
-    final nextDose = viewModel.nextDose;
-    if (nextDose == null) {
+  Widget _buildTodaysMedicinesSection(DashboardViewModel viewModel) {
+    final medications = viewModel.todaysMedications;
+
+    if (medications.isEmpty) {
       return Container();
     }
 
     return Column(
       children: [
         SectionHeader(
-          title: 'Next Dose',
-          actionText: 'View all',
-          onActionTap: () {
-            HapticFeedback.lightImpact();
-          },
-        ),
-        const SizedBox(height: 16),
-        Consumer<DashboardViewModel>(
-          builder: (context, vm, child) {
-            return MedicationCard(
-              name: nextDose.name,
-              dosage: nextDose.dosage,
-              time: nextDose.time,
-              status: nextDose.status,
-              dueInfo: nextDose.dueInfo,
-              customIcon: nextDose.icon,
-              onTakeNow: () => _onTakeNow(vm, nextDose),
-            );
-          },
-        ),
-      ],
-    );
-  }
-
-  Widget _buildTodayScheduleSection(DashboardViewModel viewModel) {
-    final schedule = viewModel.todaysMedications
-        .where((med) => med.status != MedicationStatus.takeNow)
-        .toList();
-
-    if (schedule.isEmpty) {
-      return Container();
-    }
-
-    return Column(
-      children: [
-        SectionHeader(
-          title: "Today's Schedule",
+          title: "Today's Medicines",
           subtitle: _formatDate(DateTime.now()),
         ),
         const SizedBox(height: 16),
-        ...schedule.map(
+        ...medications.map(
           (medication) => Consumer<DashboardViewModel>(
             builder: (context, vm, child) {
-              return MedicationCard(
-                name: medication.name,
-                dosage: medication.dosage,
-                time: medication.time,
-                status: medication.status,
-                dueInfo: medication.dueInfo,
-                customIcon: medication.icon,
-                onTakeNow: medication.status == MedicationStatus.upcoming
-                    ? () => _onTakeNow(vm, medication)
-                    : null,
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: MedicationCard(
+                  name: medication.name,
+                  dosage: medication.dosage,
+                  time: medication.time,
+                  status: medication.status,
+                  dueInfo: medication.dueInfo,
+                  customIcon: medication.icon,
+                  onTakeNow:
+                      (medication.status == MedicationStatus.upcoming ||
+                          medication.status == MedicationStatus.takeNow)
+                      ? () => _onTakeNow(vm, medication)
+                      : null,
+                ),
               );
             },
           ),

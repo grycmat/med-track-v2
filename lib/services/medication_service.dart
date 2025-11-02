@@ -189,8 +189,8 @@ class MedicationService {
     });
   }
 
-  Future<void> deleteMedication(int medicationId) async {
-    await _database.softDeleteMedication(medicationId);
+  Future<void> archiveMedication(int medicationId) async {
+    await _database.archiveMedication(medicationId);
   }
 
   Future<void> toggleMedicationActive(int medicationId) async {

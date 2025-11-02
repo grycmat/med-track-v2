@@ -8,7 +8,6 @@ class DashboardViewModel extends ChangeNotifier {
   final MedicationService _medicationService;
 
   List<MedicationData> _todaysMedications = [];
-  MedicationData? _nextDose;
   List<StatItem> _stats = [];
   bool _isLoading = false;
   StreamSubscription<List<MedicationData>>? _medicationsSubscription;
@@ -16,7 +15,6 @@ class DashboardViewModel extends ChangeNotifier {
   DashboardViewModel(this._medicationService);
 
   List<MedicationData> get todaysMedications => _todaysMedications;
-  MedicationData? get nextDose => _nextDose;
   List<StatItem> get stats => _stats;
   bool get isLoading => _isLoading;
 
@@ -26,16 +24,13 @@ class DashboardViewModel extends ChangeNotifier {
 
     try {
       final medications = await _medicationService.getTodaysMedications();
-      final nextDoseMed = await _medicationService.getNextDoseMedication();
       final dashboardStats = await _medicationService.getDashboardStats();
 
       _todaysMedications = medications;
-      _nextDose = nextDoseMed;
       _stats = dashboardStats;
     } catch (error) {
       debugPrint('Error loading dashboard data: $error');
       _todaysMedications = [];
-      _nextDose = null;
       _stats = [];
     } finally {
       _isLoading = false;
@@ -62,20 +57,9 @@ class DashboardViewModel extends ChangeNotifier {
         .listen((medications) {
       _todaysMedications = medications;
       notifyListeners();
-      _updateNextDose();
     }, onError: (error) {
       debugPrint('Error watching medications: $error');
     });
-  }
-
-  void _updateNextDose() async {
-    try {
-      final nextDoseMed = await _medicationService.getNextDoseMedication();
-      _nextDose = nextDoseMed;
-      notifyListeners();
-    } catch (error) {
-      debugPrint('Error updating next dose: $error');
-    }
   }
 
   @override

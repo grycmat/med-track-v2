@@ -48,8 +48,14 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final medicationService = Provider.of<MedicationService>(context, listen: false);
-    final userPreferencesViewModel = Provider.of<UserPreferencesViewModel>(context, listen: false);
+    final medicationService = Provider.of<MedicationService>(
+      context,
+      listen: false,
+    );
+    final userPreferencesViewModel = Provider.of<UserPreferencesViewModel>(
+      context,
+      listen: false,
+    );
 
     return ChangeNotifierProvider(
       create: (_) => AddMedicationViewModel(medicationService),

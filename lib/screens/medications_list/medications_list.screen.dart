@@ -6,7 +6,7 @@ import 'package:med_track_v2/services/medication_service.dart';
 import 'package:med_track_v2/theme/app_colors.dart';
 import 'package:med_track_v2/viewmodels/add_medication_viewmodel.dart';
 import 'package:med_track_v2/viewmodels/medications_list_viewmodel.dart';
-import 'package:med_track_v2/widgets/fab/fab.widget.dart';
+import 'package:med_track_v2/widgets/add_medication_fab/add_medication_fab.widget.dart';
 import 'package:provider/provider.dart';
 
 class MedicationsListScreen extends StatefulWidget {
@@ -43,10 +43,8 @@ class _MedicationsListScreenState extends State<MedicationsListScreen> {
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         appBar: _buildAppBar(),
         body: _buildBody(),
-        floatingActionButton: CustomFloatingActionButton(
-          onPressed: _onAddMedication,
-        ),
-        floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+        floatingActionButton: AddMedicationFab(onPressed: _onAddMedication),
+        floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       ),
     );
   }
@@ -180,7 +178,10 @@ class _MedicationsListScreenState extends State<MedicationsListScreen> {
             borderRadius: BorderRadius.circular(12),
             borderSide: BorderSide.none,
           ),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 12,
+          ),
         ),
       ),
     );
@@ -240,14 +241,16 @@ class _MedicationsListScreenState extends State<MedicationsListScreen> {
           color: isSelected
               ? (isDark ? AppColors.darkPrimary : AppColors.lightPrimary)
               : (isDark
-                  ? AppColors.darkSecondary.withValues(alpha: 0.5)
-                  : AppColors.lightSecondary.withValues(alpha: 0.1)),
+                    ? AppColors.darkSecondary.withValues(alpha: 0.5)
+                    : AppColors.lightSecondary.withValues(alpha: 0.1)),
           borderRadius: BorderRadius.circular(20),
         ),
         child: Text(
           label,
           style: theme.textTheme.bodySmall?.copyWith(
-            color: isSelected ? Colors.white : (isDark ? Colors.white70 : Colors.black54),
+            color: isSelected
+                ? Colors.white
+                : (isDark ? Colors.white70 : Colors.black54),
             fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
           ),
         ),
@@ -345,9 +348,10 @@ class _MedicationsListScreenState extends State<MedicationsListScreen> {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: medication.isActive
-            ? (isDark ? AppColors.darkPrimary : AppColors.lightPrimary).withValues(alpha: 0.1)
+            ? (isDark ? AppColors.darkPrimary : AppColors.lightPrimary)
+                  .withValues(alpha: 0.1)
             : (isDark ? AppColors.darkAccent : AppColors.lightSecondary)
-                .withValues(alpha: 0.1),
+                  .withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Icon(
@@ -404,17 +408,15 @@ class _MedicationsListScreenState extends State<MedicationsListScreen> {
             ),
           ],
         ),
-        if (medication.selectedDays != null && medication.selectedDays!.isNotEmpty)
+        if (medication.selectedDays != null &&
+            medication.selectedDays!.isNotEmpty)
           Padding(
             padding: const EdgeInsets.only(top: 8.0),
             child: Wrap(
               spacing: 4,
               children: medication.selectedDays!.map((day) {
                 return Chip(
-                  label: Text(
-                    day.shortName,
-                    style: theme.textTheme.bodySmall,
-                  ),
+                  label: Text(day.shortName, style: theme.textTheme.bodySmall),
                   padding: EdgeInsets.zero,
                   visualDensity: VisualDensity.compact,
                 );
@@ -488,10 +490,7 @@ class _MedicationsListScreenState extends State<MedicationsListScreen> {
         children: [
           const Icon(Icons.error_outline, size: 64, color: Colors.red),
           const SizedBox(height: 16),
-          Text(
-            'Error',
-            style: theme.textTheme.titleLarge,
-          ),
+          Text('Error', style: theme.textTheme.titleLarge),
           const SizedBox(height: 8),
           Text(
             error,
@@ -524,9 +523,7 @@ class _MedicationsListScreenState extends State<MedicationsListScreen> {
   void _onAddMedication() {
     HapticFeedback.lightImpact();
     Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => const AddMedicationScreen(),
-      ),
+      MaterialPageRoute(builder: (context) => const AddMedicationScreen()),
     );
   }
 

@@ -1,17 +1,20 @@
 import 'dart:io';
+
 import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:path/path.dart' as p;
-import 'package:med_track_v2/viewmodels/add_medication_viewmodel.dart';
-import 'package:med_track_v2/database/tables/medications_table.dart';
-import 'package:med_track_v2/database/tables/medication_times_table.dart';
 import 'package:med_track_v2/database/tables/medication_logs_table.dart';
+import 'package:med_track_v2/database/tables/medication_times_table.dart';
+import 'package:med_track_v2/database/tables/medications_table.dart';
 import 'package:med_track_v2/database/tables/user_preferences_table.dart';
+import 'package:med_track_v2/viewmodels/add_medication_viewmodel.dart';
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 
 part 'app_database.g.dart';
 
-@DriftDatabase(tables: [Medications, MedicationTimes, MedicationLogs, UserPreferences])
+@DriftDatabase(
+  tables: [Medications, MedicationTimes, MedicationLogs, UserPreferences],
+)
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
@@ -41,14 +44,15 @@ class AppDatabase extends _$AppDatabase {
   }
 
   Future<List<Medication>> getAllActiveMedications() async {
-    return (select(medications)
-          ..where((tbl) => tbl.isActive.equals(true)))
-        .get();
+    return (select(
+      medications,
+    )..where((table) => table.isActive.equals(true))).get();
   }
 
   Future<Medication> getMedicationById(int id) async {
-    return (select(medications)..where((tbl) => tbl.id.equals(id)))
-        .getSingle();
+    return (select(
+      medications,
+    )..where((table) => table.id.equals(id))).getSingle();
   }
 
   Future<int> insertMedication(MedicationsCompanion medication) async {
@@ -60,18 +64,19 @@ class AppDatabase extends _$AppDatabase {
   }
 
   Future<int> deleteMedication(int id) async {
-    return (delete(medications)..where((tbl) => tbl.id.equals(id))).go();
+    return (delete(medications)..where((table) => table.id.equals(id))).go();
   }
 
-  Future<int> softDeleteMedication(int id) async {
-    return (update(medications)..where((tbl) => tbl.id.equals(id)))
-        .write(const MedicationsCompanion(isActive: Value(false)));
+  Future<int> archiveMedication(int id) async {
+    return (update(medications)..where((table) => table.id.equals(id))).write(
+      const MedicationsCompanion(isActive: Value(false)),
+    );
   }
 
   Future<List<MedicationTime>> getTimesForMedication(int medicationId) async {
-    return (select(medicationTimes)
-          ..where((tbl) => tbl.medicationId.equals(medicationId)))
-        .get();
+    return (select(
+      medicationTimes,
+    )..where((table) => table.medicationId.equals(medicationId))).get();
   }
 
   Future<int> insertMedicationTime(MedicationTimesCompanion time) async {
@@ -79,45 +84,57 @@ class AppDatabase extends _$AppDatabase {
   }
 
   Future<int> deleteMedicationTime(int id) async {
-    return (delete(medicationTimes)..where((tbl) => tbl.id.equals(id))).go();
+    return (delete(
+      medicationTimes,
+    )..where((table) => table.id.equals(id))).go();
   }
 
   Future<int> deleteTimesForMedication(int medicationId) async {
-    return (delete(medicationTimes)
-          ..where((tbl) => tbl.medicationId.equals(medicationId)))
-        .go();
+    return (delete(
+      medicationTimes,
+    )..where((table) => table.medicationId.equals(medicationId))).go();
   }
 
   Future<List<MedicationLog>> getLogsForMedication(
-      int medicationId, DateTime startDate, DateTime endDate) async {
-    return (select(medicationLogs)
-          ..where((tbl) =>
-              tbl.medicationId.equals(medicationId) &
-              tbl.logDate.isBiggerOrEqualValue(startDate) &
-              tbl.logDate.isSmallerOrEqualValue(endDate)))
+    int medicationId,
+    DateTime startDate,
+    DateTime endDate,
+  ) async {
+    return (select(medicationLogs)..where(
+          (table) =>
+              table.medicationId.equals(medicationId) &
+              table.logDate.isBiggerOrEqualValue(startDate) &
+              table.logDate.isSmallerOrEqualValue(endDate),
+        ))
         .get();
   }
 
   Future<List<MedicationLog>> getLogsForDate(DateTime date) async {
     final startOfDay = DateTime(date.year, date.month, date.day);
     final endOfDay = startOfDay.add(const Duration(days: 1));
-    return (select(medicationLogs)
-          ..where((tbl) =>
-              tbl.logDate.isBiggerOrEqualValue(startOfDay) &
-              tbl.logDate.isSmallerThanValue(endOfDay)))
+    return (select(medicationLogs)..where(
+          (table) =>
+              table.logDate.isBiggerOrEqualValue(startOfDay) &
+              table.logDate.isSmallerThanValue(endOfDay),
+        ))
         .get();
   }
 
   Future<MedicationLog?> getLogForMedicationTimeAndDate(
-      int medicationId, int medicationTimeId, DateTime date) async {
+    int medicationId,
+    int medicationTimeId,
+    DateTime date,
+  ) async {
     final startOfDay = DateTime(date.year, date.month, date.day);
     final endOfDay = startOfDay.add(const Duration(days: 1));
     final query = select(medicationLogs)
-      ..where((tbl) =>
-          tbl.medicationId.equals(medicationId) &
-          tbl.medicationTimeId.equals(medicationTimeId) &
-          tbl.logDate.isBiggerOrEqualValue(startOfDay) &
-          tbl.logDate.isSmallerThanValue(endOfDay));
+      ..where(
+        (table) =>
+            table.medicationId.equals(medicationId) &
+            table.medicationTimeId.equals(medicationTimeId) &
+            table.logDate.isBiggerOrEqualValue(startOfDay) &
+            table.logDate.isSmallerThanValue(endOfDay),
+      );
     final results = await query.get();
     return results.isNotEmpty ? results.first : null;
   }
@@ -131,22 +148,28 @@ class AppDatabase extends _$AppDatabase {
   }
 
   Future<int> deleteMedicationLog(int id) async {
-    return (delete(medicationLogs)..where((tbl) => tbl.id.equals(id))).go();
+    return (delete(medicationLogs)..where((table) => table.id.equals(id))).go();
   }
 
   Future<int> countTakenLogsForDateRange(
-      DateTime startDate, DateTime endDate) async {
+    DateTime startDate,
+    DateTime endDate,
+  ) async {
     final query = selectOnly(medicationLogs)
       ..addColumns([medicationLogs.id.count()])
-      ..where(medicationLogs.status.equals('taken') &
-          medicationLogs.logDate.isBiggerOrEqualValue(startDate) &
-          medicationLogs.logDate.isSmallerOrEqualValue(endDate));
+      ..where(
+        medicationLogs.status.equals('taken') &
+            medicationLogs.logDate.isBiggerOrEqualValue(startDate) &
+            medicationLogs.logDate.isSmallerOrEqualValue(endDate),
+      );
     final result = await query.getSingle();
     return result.read(medicationLogs.id.count()) ?? 0;
   }
 
   Future<int> countTotalScheduledForDateRange(
-      DateTime startDate, DateTime endDate) async {
+    DateTime startDate,
+    DateTime endDate,
+  ) async {
     final medications = await getAllActiveMedications();
     int totalCount = 0;
 
@@ -160,18 +183,19 @@ class AppDatabase extends _$AppDatabase {
   }
 
   Stream<List<Medication>> watchActiveMedications() {
-    return (select(medications)
-          ..where((tbl) => tbl.isActive.equals(true)))
-        .watch();
+    return (select(
+      medications,
+    )..where((table) => table.isActive.equals(true))).watch();
   }
 
   Stream<List<MedicationLog>> watchLogsForDate(DateTime date) {
     final startOfDay = DateTime(date.year, date.month, date.day);
     final endOfDay = startOfDay.add(const Duration(days: 1));
-    return (select(medicationLogs)
-          ..where((tbl) =>
-              tbl.logDate.isBiggerOrEqualValue(startOfDay) &
-              tbl.logDate.isSmallerThanValue(endOfDay)))
+    return (select(medicationLogs)..where(
+          (table) =>
+              table.logDate.isBiggerOrEqualValue(startOfDay) &
+              table.logDate.isSmallerThanValue(endOfDay),
+        ))
         .watch();
   }
 
@@ -184,16 +208,22 @@ class AppDatabase extends _$AppDatabase {
     return results.isNotEmpty ? results.first : null;
   }
 
-  Future<int> insertUserPreferences(UserPreferencesCompanion preferences) async {
+  Future<int> insertUserPreferences(
+    UserPreferencesCompanion preferences,
+  ) async {
     return into(userPreferences).insert(preferences);
   }
 
-  Future<bool> updateUserPreferences(UserPreferencesCompanion preferences) async {
+  Future<bool> updateUserPreferences(
+    UserPreferencesCompanion preferences,
+  ) async {
     return update(userPreferences).replace(preferences);
   }
 
   Future<int> deleteUserPreferences(int id) async {
-    return (delete(userPreferences)..where((tbl) => tbl.id.equals(id))).go();
+    return (delete(
+      userPreferences,
+    )..where((table) => table.id.equals(id))).go();
   }
 
   Stream<UserPreference?> watchUserPreferences() {
